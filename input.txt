@@ -1,0 +1,292 @@
+-- DML Operations
+SELECT id, name FROM Users WHERE age >= 18 AND country = 'KSA';
+INSERT INTO Users VALUES (1, 'John', 25);
+UPDATE Users SET name = 'Jane' WHERE id = 1;
+DELETE FROM Users WHERE age < 18;
+MERGE INTO target USING source ON target.id = source.id;
+REPLACE INTO table1 VALUES (1, 2);
+UPSERT INTO table1 VALUES (1, 2);
+CALL procedure_name();
+DO @@global_var;
+
+-- DDL Operations
+CREATE TABLE IF NOT EXISTS employees (
+    id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    salary DECIMAL(10,2) DEFAULT 0.0,
+    hire_date DATE,
+    CONSTRAINT fk_dept FOREIGN KEY (dept_id) REFERENCES departments(id) ON DELETE CASCADE,
+    UNIQUE (email),
+    CHECK (salary >= 0)
+);
+
+ALTER TABLE employees ADD COLUMN bonus FLOAT;
+DROP TABLE IF EXISTS temp_table;
+TRUNCATE TABLE logs;
+CREATE INDEX idx_name ON employees(name);
+CREATE VIEW active_users AS SELECT * FROM Users WHERE active = TRUE;
+CREATE SCHEMA myschema;
+CREATE DATABASE testdb;
+CREATE DOMAIN email_domain AS VARCHAR(255);
+CREATE TYPE custom_type AS ENUM ('A', 'B', 'C');
+CREATE SEQUENCE seq_id START WITH 1;
+CREATE TRIGGER update_timestamp BEFORE UPDATE ON employees;
+CREATE PROCEDURE proc_name() BEGIN SELECT 1; END;
+CREATE FUNCTION func_name() RETURN INT;
+CREATE PACKAGE pkg_name;
+CREATE PACKAGE BODY pkg_name;
+
+-- DCL Operations
+GRANT SELECT ON Users TO PUBLIC;
+REVOKE DELETE ON Users FROM user1;
+DENY UPDATE ON table1 TO role1;
+GRANT ADMIN TO user1;
+
+-- TCL Operations
+BEGIN TRANSACTION;
+COMMIT;
+ROLLBACK TO SAVEPOINT sp1;
+SAVEPOINT sp1;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+LOCK TABLE users IN EXCLUSIVE MODE NOWAIT;
+
+-- Joins
+SELECT * FROM table1 
+INNER JOIN table2 ON table1.id = table2.id
+LEFT OUTER JOIN table3 USING (id)
+RIGHT JOIN table4 ON table4.id = table1.id
+FULL OUTER JOIN table5 ON table5.id = table1.id
+CROSS JOIN table6
+NATURAL JOIN table7;
+
+SELECT * FROM table1 UNION SELECT * FROM table2;
+SELECT * FROM table1 INTERSECT SELECT * FROM table2;
+SELECT * FROM table1 EXCEPT SELECT * FROM table2;
+SELECT * FROM table1 MINUS SELECT * FROM table2;
+
+-- Clauses and Window Functions
+SELECT DISTINCT name, 
+       COUNT(*) OVER (PARTITION BY dept ORDER BY salary ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as running_count,
+       ROW_NUMBER() OVER (ORDER BY salary DESC) as rank_num,
+       RANK() OVER (ORDER BY salary),
+       DENSE_RANK() OVER (ORDER BY salary),
+       LAG(salary, 1) OVER (ORDER BY hire_date),
+       LEAD(salary) OVER (ORDER BY hire_date),
+       FIRST_VALUE(salary) OVER (ORDER BY hire_date),
+       LAST_VALUE(salary) OVER (ORDER BY hire_date RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING),
+       NTILE(4) OVER (ORDER BY salary),
+       PERCENT_RANK() OVER (ORDER BY salary),
+       CUME_DIST() OVER (ORDER BY salary),
+       NTH_VALUE(salary, 2) OVER (ORDER BY hire_date)
+FROM employees
+WHERE salary > 5000 AND dept_id IN (1, 2, 3)
+GROUP BY dept_id, name
+HAVING AVG(salary) > 6000
+ORDER BY salary ASC NULLS FIRST
+LIMIT 10 OFFSET 5
+FETCH NEXT 10 ROWS ONLY;
+
+-- Logical Operators and Conditions
+SELECT * FROM users 
+WHERE age BETWEEN 18 AND 65
+AND name LIKE '%John%'
+AND email ILIKE '%@EXAMPLE.COM'
+AND bio SIMILAR TO '%pattern%'
+AND comment RLIKE 'regex.*'
+AND description REGEXP '^test'
+AND status IS NOT NULL
+AND EXISTS (SELECT 1 FROM orders WHERE orders.user_id = users.id)
+AND id IN (1, 2, 3)
+AND age > ALL (SELECT age FROM managers)
+AND salary >= ANY (SELECT salary FROM dept)
+AND bonus > SOME (SELECT bonus FROM executives)
+OR country NOT IN ('US', 'UK')
+AND email IS NOT NULL
+ESCAPE '\';
+
+-- Control Flow
+SELECT 
+    CASE 
+        WHEN age < 18 THEN 'Minor'
+        WHEN age >= 18 AND age < 65 THEN 'Adult'
+        ELSE 'Senior'
+    END as age_group
+FROM users;
+
+-- System Functions and Variables
+SELECT USER, SESSION_USER, SYSTEM_USER, CURRENT_USER,
+       CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP,
+       SYSDATE,
+       COALESCE(bonus, 0),
+       NULLIF(salary, 0),
+       GREATEST(1, 2, 3),
+       LEAST(1, 2, 3),
+       CAST(salary AS VARCHAR),
+       CONVERT(VARCHAR, hire_date),
+       EXTRACT(YEAR FROM hire_date),
+       POSITION('sub' IN 'substring'),
+       SUBSTRING(name, 1, 10),
+       TRIM(LEADING ' ' FROM name);
+
+-- Aggregate Functions
+SELECT dept_id,
+       COUNT(*) as total,
+       SUM(salary) as total_salary,
+       AVG(salary) as avg_salary,
+       MIN(salary) as min_salary,
+       MAX(salary) as max_salary,
+       STDDEV(salary),
+       VARIANCE(salary),
+       STRING_AGG(name, ', ') as names,
+       GROUP_CONCAT(name),
+       ARRAY_AGG(id)
+FROM employees
+GROUP BY dept_id
+FILTER (WHERE active = TRUE)
+WITHIN GROUP (ORDER BY hire_date);
+
+-- CTE and Recursive Queries
+WITH RECURSIVE cte AS (
+    SELECT 1 as n
+    UNION ALL
+    SELECT n + 1 FROM cte WHERE n < 10
+)
+SELECT * FROM cte;
+
+-- Lateral Joins
+SELECT * FROM table1, LATERAL (SELECT * FROM table2 WHERE table2.id = table1.id) t2;
+
+-- Collation and Window
+SELECT name COLLATE "C" 
+FROM users
+WINDOW w AS (PARTITION BY dept ORDER BY salary);
+
+-- Auxiliary Commands
+SHOW TABLES;
+DESCRIBE users;
+DESC users;
+EXPLAIN SELECT * FROM users;
+ANALYZE TABLE users;
+USE database_name;
+PRAGMA table_info(users);
+
+-- Data Types (in CREATE TABLE context)
+CREATE TABLE all_types (
+    col_int INT,
+    col_integer INTEGER,
+    col_bigint BIGINT,
+    col_smallint SMALLINT,
+    col_tinyint TINYINT,
+    col_decimal DECIMAL(10,2),
+    col_numeric NUMERIC(10,2),
+    col_float FLOAT,
+    col_real REAL,
+    col_double DOUBLE PRECISION,
+    col_char CHAR(10),
+    col_varchar VARCHAR(100),
+    col_varchar2 VARCHAR2(100),
+    col_nvarchar NVARCHAR(100),
+    col_nchar NCHAR(10),
+    col_text TEXT,
+    col_date DATE,
+    col_time TIME,
+    col_datetime DATETIME,
+    col_timestamp TIMESTAMP,
+    col_interval INTERVAL,
+    col_boolean BOOLEAN,
+    col_bool BOOL,
+    col_blob BLOB,
+    col_clob CLOB,
+    col_json JSON,
+    col_jsonb JSONB,
+    col_xml XML,
+    col_uuid UUID,
+    col_money MONEY,
+    col_bit BIT,
+    col_varbit VARBIT,
+    col_binary BINARY,
+    col_varbinary VARBINARY,
+    col_image IMAGE,
+    col_enum ENUM('a', 'b', 'c'),
+    col_array ARRAY,
+    col_struct STRUCT,
+    col_map MAP
+);
+
+-- Time Units with EXTRACT
+SELECT EXTRACT(YEAR FROM hire_date),
+       EXTRACT(MONTH FROM hire_date),
+       EXTRACT(DAY FROM hire_date),
+       EXTRACT(HOUR FROM login_time),
+       EXTRACT(MINUTE FROM login_time),
+       EXTRACT(SECOND FROM login_time)
+FROM employees AT TIME ZONE 'UTC';
+
+-- Boolean Literals
+SELECT * FROM flags WHERE is_active = TRUE AND is_deleted = FALSE AND status = UNKNOWN;
+
+-- Numeric Literals
+SELECT 123 as int_lit,
+       123.456 as float_lit,
+       1.23e-4 as scientific,
+       .456 as decimal_start,
+       0xFF as hex_lit,
+       0x1A2B3C as hex_lit2;
+
+-- String Literals
+SELECT 'Hello World' as string_lit,
+       'Can''t stop' as escaped_quote,
+       N'Unicode String' as unicode_str,
+       X'48656C6C6F' as hex_string,
+       B'101010' as bit_string;
+
+-- Identifiers
+SELECT identifier, "quoted identifier", `backtick_id`, [bracket_id] FROM table1;
+
+-- Variables
+SET @local_var = 10;
+SET @@global_var = 100;
+SELECT @local_var, @@session.timeout;
+
+-- Operators
+SELECT a = b, a != b, a <> b, a >= b, a <= b, a > b, a < b,
+       a + b, a - b, a * b, a / b, a % b,
+       str1 || str2,
+       a & b, a | b, a ^ b, ~a,
+       a << 2, b >> 1
+FROM operators_test;
+
+-- Procedural Flow Control
+IF @counter > 10 THEN
+    RETURN 1;
+ELSE
+    WHILE @counter < 100 LOOP
+        SET @counter = @counter + 1;
+        IF @counter = 50 THEN
+            BREAK;
+        END IF;
+        CONTINUE;
+    END LOOP;
+END IF;
+
+GOTO label1;
+DECLARE @var INT;
+EXEC stored_proc;
+EXECUTE dynamic_sql;
+
+-- Complex nested query with all operators
+SELECT *
+FROM (
+    SELECT id, name, salary,
+           CASE WHEN salary > 100000 THEN 'High' ELSE 'Low' END as category
+    FROM employees
+    WHERE dept_id IN (SELECT id FROM departments WHERE active = TRUE)
+) subquery
+WHERE category = 'High'
+ORDER BY salary DESC;
+
+/* Multi-line comment
+   Testing block comments
+   across multiple lines */
+   
+# Hash comment for MySQL compatibility

@@ -64,6 +64,7 @@ nbdist/
 Thumbs.db
 
 # Other
+output.txt
 *.swp
 *.swo
 *~
