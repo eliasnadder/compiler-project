@@ -17,7 +17,7 @@ public class TestParser {
 
         SQLParser parser = new SQLParser(tokens);
 
-        ParseTree tree = parser.sql_script();
+        ParseTree tree = parser.sqlScript();
 
         String outputFile = "ParserOutput.txt";
         Files.writeString(
