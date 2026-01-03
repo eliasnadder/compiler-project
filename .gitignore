@@ -65,6 +65,7 @@ Thumbs.db
 
 # Other
 output.txt
+ParserOutput.txt
 *.swp
 *.swo
 *~
