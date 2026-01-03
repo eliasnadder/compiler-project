@@ -147,7 +147,8 @@ FOLLOWING: F O L L O W I N G;
 CURRENT: C U R R E N T;
 ROW: R O W;
 FILTER: F I L T E R;
-WITHIN: W I T H I N;
+WITHIN: W I T H I N; 
+MATCHED: M A T C H E D; //! Updated 
 
 // ===================== Logical Operators =====================
 AND: A N D;
@@ -169,6 +170,8 @@ NULLS: N U L L S;
 FIRST: F I R S T;
 LAST: L A S T;
 ESCAPE: E S C A P E;
+
+TO: T O; //! Updated
 
 NOT_IN: N O T '_' I N;
 NOT_EXISTS: N O T '_' E X I S T S;
