@@ -9,7 +9,7 @@ GROUP BY u.name, u.country
 HAVING COUNT(o.id) > 0
 ORDER BY order_count DESC;
 
-BEGIN_TRANSACTION;
+BEGIN TRANSACTION;
 IF (EXISTS(SELECT * FROM users WHERE id = 1)) {
     UPDATE users SET status = 'active' WHERE id = 1;
     COMMIT;
