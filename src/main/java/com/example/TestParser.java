@@ -3,12 +3,11 @@ package com.example;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import java.nio.file.*;
-import java.io.*;
 
 public class TestParser {
-
     private static void printTree(ParseTree tree, SQLParser parser, String prefix, boolean isTail, StringBuilder sb) {
-        if (tree == null) return;
+        if (tree == null)
+            return;
 
         String nodeName;
 
@@ -22,7 +21,7 @@ public class TestParser {
             }
 
             nodeName = text + " [" + type + "]";
-        } else { 
+        } else {
             ParserRuleContext ctx = (ParserRuleContext) tree;
             nodeName = parser.getRuleNames()[ctx.getRuleIndex()];
         }

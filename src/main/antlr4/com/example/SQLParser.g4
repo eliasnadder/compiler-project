@@ -3,22 +3,27 @@ parser grammar SQLParser;
 options {
     tokenVocab = SQLLexer;
 }
+//! Updated: Replace '(' and ')' with LPAREN and RPAREN
 
 // ________________ Init ________________
-
+//! Updated: Replace statement* EOF with statementList EOF
 sqlScript
-    : statement* EOF
+    : statementList EOF
     ;
 
+//* Updated: Add insert, update, delete, merge
 statement
     : selectStatement
+    | insertStatement
+    | updateStatement
+    | deleteStatement
+    | mergeStatement
     | grantStatement
     | revokeStatement
     | denyStatement
     | transactionStatement
     | controlFlowStatement
     ;
-
 
 //_______________________________________bshr 
 
@@ -50,20 +55,27 @@ tableSource
     : tableFactor (joinClause)*
     ;
 
+// tableFactor
+//     : IDENTIFIER (AS? IDENTIFIER)?
+//     | '(' selectStatement ')' AS? IDENTIFIER
+//     ;
+// ! Updated: Replace IDENTIFIER with qualifiedName
 tableFactor
-    : IDENTIFIER (AS? IDENTIFIER)?
-    | '(' selectStatement ')' AS? IDENTIFIER
+    : qualifiedName (AS? IDENTIFIER)?
+    | LPAREN selectStatement RPAREN AS? IDENTIFIER
     ;
 
+//! Updated: Relpace joinType JOIN with joinType? JOIN
 joinClause
-    : joinType JOIN tableFactor ON expression
+    : joinType? JOIN tableFactor ON expression
     ;
 
+//! Updated: Add OUTER? to LEFT, RIGHT, FULL
 joinType
     : INNER
-    | LEFT
-    | RIGHT
-    | FULL
+    | LEFT OUTER?
+    | RIGHT OUTER?
+    | FULL OUTER?
     | CROSS
     ;
 
@@ -87,21 +99,98 @@ orderExpression
     : expression (ASC | DESC)?
     ;
 
-// ________________ Expressions & Predicates ________________
+// ________________ INSERT Statement ________________
 
-expression
-    : '(' expression ')'
-    | expression AND expression
-    | expression OR expression
-    | NOT expression
-    | predicate
+insertStatement
+    : INSERT INTO qualifiedName (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)?
+      (VALUES LPAREN expression (COMMA expression)* RPAREN (COMMA LPAREN expression (COMMA expression)* RPAREN)*
+      | selectStatement)
     ;
 
-predicate
-    : expression comparisonOperator expression
-    | functionCall
-    | literal
-    | IDENTIFIER
+// ________________ UPDATE Statement ________________
+
+updateStatement
+    : UPDATE qualifiedName
+      SET assignmentClause (COMMA assignmentClause)*
+      whereClause?
+    ;
+
+assignmentClause
+    : IDENTIFIER EQ expression
+    ;
+
+// ________________ DELETE Statement ________________
+
+deleteStatement
+    : DELETE FROM qualifiedName
+      whereClause?
+    ;
+
+// ________________ MERGE Statement ________________
+
+mergeStatement
+    : MERGE INTO qualifiedName (AS? IDENTIFIER)?
+      USING tableSource
+      ON expression
+      whenClauseMerge+
+    ;
+
+whenClauseMerge
+    : WHEN MATCHED (AND expression)? THEN mergeAction
+    | WHEN NOT MATCHED (AND expression)? THEN mergeAction
+    ;
+
+mergeAction
+    : UPDATE SET assignmentClause (COMMA assignmentClause)*
+    | DELETE
+    | INSERT (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)? VALUES LPAREN expression (COMMA expression)* RPAREN
+    ;
+
+//_______________________________________elias
+
+// ________________ Expressions & Predicates ________________
+
+// expression
+//     : '(' expression ')'
+//     | expression AND expression
+//     | expression OR expression
+//     | NOT expression
+//     | predicate
+//     ;
+
+// predicate
+//     : expression comparisonOperator expression
+//     | functionCall
+//     | literal
+//     | IDENTIFIER
+//     ;
+
+//! Updated: merge expression and predicate rules into a single
+
+expression
+    : LPAREN expression RPAREN                                                 # ParenExpression
+    | NOT expression                                                           # NotExpression
+    | expression (STAR | DIV | MOD) expression                                 # MultiplicativeExpression
+    | expression (PLUS | MINUS_OP) expression                                  # AdditiveExpression
+    | expression comparisonOperator expression                                 # ComparisonExpression
+    | expression AND expression                                                # AndExpression
+    | expression OR expression                                                 # OrExpression
+    | expression IS NOT? NULL                                                  # IsNullExpression
+    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN      # InExpression
+    | expression NOT? BETWEEN expression AND expression                        # BetweenExpression
+    | expression NOT? LIKE expression (ESCAPE expression)?                     # LikeExpression
+    | EXISTS LPAREN selectStatement RPAREN                                     # ExistsExpression
+    | functionCall                                                             # FunctionExpression
+    | qualifiedName                                                            # ColumnExpression
+    | literal                                                                  # LiteralExpression
+    ;
+
+expressionList
+    : expression (COMMA expression)*
+    ;
+
+qualifiedName
+    : IDENTIFIER (DOT IDENTIFIER)*
     ;
 
 comparisonOperator
@@ -114,6 +203,7 @@ comparisonOperator
     ;
 
 //______________________________________aya
+//______________________________________updated by elias
 
 // ________________ Functions ________________
 
@@ -132,15 +222,15 @@ systemFunction
     ;
 
 aggregateFunction
-    : (COUNT|SUM|AVG|MIN|MAX) '(' (STAR | expression) ')' (OVER '(' windowSpec ')')?
+    : (COUNT|SUM|AVG|MIN|MAX) LPAREN (STAR | DISTINCT? expression) RPAREN (OVER LPAREN windowSpec RPAREN)?
     ;
 
 windowFunction
-    : (ROW_NUMBER|RANK|DENSE_RANK|NTILE) '(' ')' OVER '(' windowSpec ')'
+    : (ROW_NUMBER|RANK|DENSE_RANK|NTILE) LPAREN RPAREN OVER LPAREN windowSpec RPAREN
     ;
 
 userFunction
-    : IDENTIFIER '(' (expression (COMMA expression)*)? ')'
+    : IDENTIFIER LPAREN (expression (COMMA expression)*)? RPAREN
     ;
 
 windowSpec
@@ -148,30 +238,36 @@ windowSpec
     ;
 
 // ________________ Literals ________________
-
+//! Updated: added TRUE, FALSE, NULL
+//! Fixed string literals string and numbers
 literal
-    : STRING
-    | NUMBER
+    : STRING_LITERAL
+    | INT_LITERAL
+    | FLOAT_LITERAL
+    | HEX_LITERAL
+    | TRUE
+    | FALSE
+    | NULL
     ;
 
 // ________________ Security Statements ________________
-
+//! Updated: Replace ON qualifiedName with ON qualifiedName
 grantStatement
-    : GRANT IDENTIFIER ON IDENTIFIER TO IDENTIFIER
+    : GRANT IDENTIFIER ON qualifiedName TO IDENTIFIER
     ;
 
 revokeStatement
-    : REVOKE IDENTIFIER ON IDENTIFIER FROM IDENTIFIER
+    : REVOKE IDENTIFIER ON qualifiedName FROM IDENTIFIER
     ;
 
 denyStatement
-    : DENY IDENTIFIER ON IDENTIFIER TO IDENTIFIER
+    : DENY IDENTIFIER ON qualifiedName TO IDENTIFIER
     ;
 
 // ________________ Transaction Control ________________
 
 transactionStatement
-    : BEGIN_TRANSACTION
+    : BEGIN TRANSACTION?
     | COMMIT
     | ROLLBACK
     | SAVEPOINT IDENTIFIER
@@ -189,33 +285,59 @@ controlFlowStatement
     ;
 
 caseExpression
-    : CASE whenClause+ ELSE expression? END
+    : CASE whenClause+ (ELSE expression)? END
     ;
 
 whenClause
     : WHEN expression THEN expression
     ;
 
+//! Updated: Add optional ELSE block to ifStatement
 ifStatement
-    : IF '(' expression ')' block
+    : IF LPAREN expression RPAREN block (ELSE block)?
     ;
 
 whileStatement
-    : WHILE '(' expression ')' block
+    : WHILE LPAREN expression RPAREN block
     ;
 
+//! Updated: Add optional SEMICOLON to returnStatement
 returnStatement
-    : RETURN expression?
+    : RETURN expression? SEMICOLON?
     ;
 
 breakStatement
-    : BREAK
+    : BREAK SEMICOLON?
     ;
 
 continueStatement
-    : CONTINUE
+    : CONTINUE SEMICOLON?
     ;
 
+//! Updated: Replace (statement)* with statementList
 block
-    : '{' statement* '}'
+    : LBRACE statementList RBRACE
+    | singleStatement
+    ;
+
+statementList
+    : (singleStatement)*
+    ;
+
+singleStatement
+    : (selectStatement
+    | insertStatement
+    | updateStatement
+    | deleteStatement
+    | mergeStatement
+    | grantStatement
+    | revokeStatement
+    | denyStatement
+    | transactionStatement
+    | ifStatement
+    | whileStatement
+    | returnStatement
+    | breakStatement
+    | continueStatement
+    | caseExpression) SEMICOLON?
     ;
