@@ -1,3 +1,14 @@
+/* Level 1 comment
+   /* Level 2 comment
+      /* Level 3 comment */
+   Level 2 comment */
+Level 1 comment
+*/
+
+/* Level 1 comment
+   /* Level 2 comment */
+Level 1 comment
+*/
 SELECT 
     u.name, 
     COUNT(o.id) AS order_count,
