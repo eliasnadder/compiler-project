@@ -365,5 +365,14 @@ RBRACE: '}';
 // ===================== Comments & Whitespace =====================
 WS: [ \t\r\n]+ -> skip;
 LINE_COMMENT: '--' ~[\r\n]* -> skip;
-BLOCK_COMMENT: '/*' .*? '*/' -> skip;
+// BLOCK_COMMENT: '/*' .*? '*/' -> skip;
+//! Updated to support nested block comments
+BLOCK_COMMENT_START: '/*' -> pushMode(BLOCK_COMMENT_MODE), skip;
+
+mode BLOCK_COMMENT_MODE;
+
+BLOCK_COMMENT_NESTED: '/*' -> pushMode(BLOCK_COMMENT_MODE), skip;
+BLOCK_COMMENT_END: '*/' -> popMode, skip;
+BLOCK_COMMENT_CONTENT: . -> skip;
+
 HASH_COMMENT: '#' ~[\r\n]* -> skip; 
