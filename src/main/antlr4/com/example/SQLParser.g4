@@ -23,6 +23,10 @@ statement
     | denyStatement
     | transactionStatement
     | controlFlowStatement
+    | createStatement
+    | alterStatement
+    | dropStatement
+    | truncateStatement
     ;
 
 //_______________________________________bshr 
@@ -339,5 +343,252 @@ singleStatement
     | returnStatement
     | breakStatement
     | continueStatement
-    | caseExpression) SEMICOLON?
+    | caseExpression
+    | createStatement
+    | alterStatement
+    | dropStatement
+    | truncateStatement) SEMICOLON?
     ;
+//______________________________________Hala
+//________________Create________________
+createStatement:
+    CREATE createObject;
+createObject:
+    createDatabase
+    |createTable
+    |createView
+    |createIndex
+    ;
+
+    
+columnName
+    : IDENTIFIER
+    ;
+datatype:
+    INT
+    |BIGINT
+    |TINYINT
+    |SMALLINT
+    |DECIMAL
+    |NUMERIC
+    |FLOAT
+    |DOUBLE
+    |REAL
+    |BOOLEAN
+    |BOOL
+    |CHAR
+    |VARCHAR
+    |TEXT
+    |ENUM
+    |SET
+    |DATETIME
+    |DATE
+    |TIME
+    |TIMESTAMP
+    |YEAR
+    |BINARY
+    |VARBINARY
+    |BLOB
+    |JSON
+    |UUID
+    |BIT;
+columnConstraint
+    : PRIMARY KEY
+    | FOREIGN KEY
+    | UNIQUE
+    | DEFAULT literal?
+    | CHECK '(' expression ')'
+    | ON UPDATE expression
+    | COLLATE IDENTIFIER
+    | BINARY
+    ;
+
+
+columnDefinition:columnName datatype columnConstraint*;
+
+createDatabase:
+    DATABASE IF_NOT_EXISTS? databaseName;
+
+databaseName:IDENTIFIER;
+
+createTable:
+    TABLE IF_NOT_EXISTS? tableName
+    LPAREN columnDefinition (COMMA columnDefinition)* RPAREN;
+
+tableName:IDENTIFIER;
+
+viewName:IDENTIFIER;
+
+createView:
+    VIEW IF_NOT_EXISTS? viewName AS selectStatement;
+
+indexName:IDENTIFIER;
+
+createIndex:
+    INDEX indexName ON tableName LPAREN columnName (COMMA columnName)* RPAREN;
+//________________Alter_______________________
+alterStatement:
+    ALTER alterObject;
+
+alterObject:
+    alterTable
+    ;
+
+alterTable:
+    TABLE tableName alterTableAction  (COMMA alterTableAction)*
+    ;
+
+oldColumnName:
+    IDENTIFIER
+    ;
+
+newColumnName:
+    IDENTIFIER
+    ;
+newTableName:
+    IDENTIFIER
+    ;
+
+constraintName:
+    IDENTIFIER
+    ;
+
+
+alterTableAction:
+    addColumn
+    |dropColumn
+    |modifyColumn
+    |changeColumn
+    |renameColumn
+    |renameTable
+    |addConstraint
+    |dropConstraint
+    |addIndex
+    |dropColumnIndex
+    |alterColumnDefault
+    ;
+
+addColumn:
+    ADD COLUMN columnDefinition
+    ;
+
+dropColumn:
+    DROP COLUMN columnName
+    ;
+
+modifyColumn:
+    MODIFY COLUMN columnDefinition
+    ;
+
+changeColumn:
+    CHANGE COLUMN oldColumnName columnDefinition
+    ;
+
+renameColumn:
+    RENAME COLUMN oldColumnName TO newColumnName
+    ;
+
+renameTable:
+    RENAME TO newTableName
+    ;
+
+tableConstraint
+    : PRIMARY KEY LPAREN columnList RPAREN
+    | UNIQUE LPAREN columnList RPAREN
+    | FOREIGN KEY LPAREN columnList RPAREN REFERENCES tableName LPAREN columnList RPAREN
+    | CHECK LPAREN expression RPAREN
+    ;
+
+columnList
+    : columnName (COMMA columnName)*
+    ;
+
+addConstraint
+    : ADD (CONSTRAINT constraintName)? tableConstraint
+    ;
+
+dropConstraint:
+      DROP (
+          PRIMARY KEY
+        | FOREIGN KEY constraintName
+        | INDEX constraintName
+        | KEY constraintName
+        | CONSTRAINT constraintName
+        | CHECK constraintName
+      )
+    ;
+
+
+addIndex:
+    ADD (UNIQUE)? (INDEX | KEY) indexName LPAREN columnName (COMMA columnName)* RPAREN
+    ;
+dropColumnIndex:
+    DROP (INDEX|KEY) indexName
+    ;
+defaultValue
+    : STRING_LITERAL
+    | INT_LITERAL
+    | FLOAT_LITERAL
+    | TRUE
+    | FALSE
+    | NULL
+    ;
+
+alterColumnDefault:
+    ALTER COLUMN columnName (SET DEFAULT defaultValue|DROP DEFAULT)
+    ;
+
+
+
+//________________Drop__________________________
+dropStatement:
+    DROP dropObject;
+
+dropObject:
+    dropTable
+    |dropDatabase
+    |dropView
+    |dropIndex
+    ;
+
+dropDatabase:
+    DATABASE (IF_EXISTS)? databaseName
+    ;
+
+dropTable:
+    TABLE (IF_EXISTS)? tableName (COMMA tableName)?
+    ;
+
+dropView:
+    VIEW (IF_EXISTS)? viewName (COMMA viewName)*
+    ;
+
+dropIndex:
+    INDEX indexName ON tableName 
+    ;
+
+//________________Truncate________________________
+
+truncateStatement:
+    TRUNCATE truncateObject
+    ;
+
+truncateObject:
+    truncateTable
+    ;
+
+truncateTable:
+    TABLE (IF_EXISTS)? tableName (COMMA tableName)* truncateOption*;
+
+truncateOption:
+    CASCADE
+    |RESTRICT
+    |RESTART IDENTITY
+    |CONTINUE IDENTITY
+    ;
+
+
+    
+    
+
+
