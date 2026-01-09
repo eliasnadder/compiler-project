@@ -11,6 +11,13 @@ sqlScript
     ;
 
 // ________________________ Statements 
+singleStatement
+    : statement SEMICOLON?
+    ;
+
+statementList
+    : singleStatement*
+    ;
 
 statement
     : selectStatement
@@ -23,11 +30,13 @@ statement
     | denyStatement
     | transactionStatement
     | controlFlowStatement
+    | cursorStatement
     | createStatement
     | alterStatement
     | dropStatement
     | truncateStatement
     ;
+
 
 // Bshr DML Statements 
 
@@ -95,31 +104,36 @@ orderExpression
     : expression (ASC | DESC)?
     ;
 
-// ---------------------- INSERT ---------------------------
+//___________________________________________________________________________________________
+
+//Elias
+
+//  INSERT 
 insertStatement
     : INSERT INTO qualifiedName (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)?
       (VALUES LPAREN expression (COMMA expression)* RPAREN (COMMA LPAREN expression (COMMA expression)* RPAREN)*
       | selectStatement)
     ;
 
-// ---------------------- UPDATE ---------------------------
+//  UPDATE 
 updateStatement
     : UPDATE qualifiedName
-      SET assignmentClause (COMMA assignmentClause)*
+      SET updateAssignment (COMMA updateAssignment)*
       whereClause?
     ;
 
-assignmentClause
+updateAssignment
     : IDENTIFIER EQ expression
+    | IDENTIFIER (PLUS_EQ | MINUS_EQ | MULT_EQ | DIV_EQ | MOD_EQ) expression
     ;
 
-// ---------------------- DELETE ---------------------------
+//  DELETE 
 deleteStatement
     : DELETE FROM qualifiedName
       whereClause?
     ;
 
-// ---------------------- MERGE ----------------------------
+//  MERGE 
 mergeStatement
     : MERGE INTO qualifiedName (AS? IDENTIFIER)?
       USING tableSource
@@ -133,11 +147,66 @@ whenClauseMerge
     ;
 
 mergeAction
-    : UPDATE SET assignmentClause (COMMA assignmentClause)*
+    : UPDATE SET updateAssignment (COMMA updateAssignment)*
     | DELETE
-    | INSERT (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)? VALUES LPAREN expression (COMMA expression)* RPAREN
+    | INSERT (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)?
+      VALUES LPAREN expression (COMMA expression)* RPAREN
     ;
 
+
+//  Cursor Statements 
+cursorStatement
+    : DECLARE IDENTIFIER CURSOR FOR selectStatement
+    | OPEN IDENTIFIER
+    | FETCH NEXT FROM IDENTIFIER INTO identifierList
+    | CLOSE IDENTIFIER
+    | DEALLOCATE IDENTIFIER
+    ;
+
+identifierList
+    : IDENTIFIER (COMMA IDENTIFIER)*
+    ;
+
+//  Control Flow 
+
+controlFlowStatement
+    : caseExpression
+    | ifStatement
+    | whileStatement
+    | returnStatement
+    | breakStatement
+    | continueStatement
+    ;
+
+caseExpression
+    : CASE whenClause+ (ELSE expression)? END
+    ;
+
+whenClause
+    : WHEN expression THEN expression
+    ;
+
+ifStatement
+    : IF LPAREN expression RPAREN block (ELSE block)?
+    ;
+
+whileStatement
+    : WHILE LPAREN expression RPAREN block
+    ;
+
+returnStatement
+    : RETURN expression? SEMICOLON?
+    ;
+
+breakStatement
+    : BREAK SEMICOLON?
+    ;
+
+continueStatement
+    : CONTINUE SEMICOLON?
+    ;
+
+    
 //________________________________________________________________________________________________________________________________
 
 // Aya 
@@ -207,10 +276,6 @@ windowSpec
     : (PARTITION BY expression (COMMA expression)*)? (ORDER BY orderExpression (COMMA orderExpression)*)?
     ;
 
-//________________________________________________________________________________________________________________________________
-
-// Elias 
-
 // Literals 
 
 literal
@@ -246,45 +311,6 @@ transactionStatement
     | SAVEPOINT IDENTIFIER
     ;
 
-//  Control Flow 
-
-controlFlowStatement
-    : caseExpression
-    | ifStatement
-    | whileStatement
-    | returnStatement
-    | breakStatement
-    | continueStatement
-    ;
-
-caseExpression
-    : CASE whenClause+ (ELSE expression)? END
-    ;
-
-whenClause
-    : WHEN expression THEN expression
-    ;
-
-ifStatement
-    : IF LPAREN expression RPAREN block (ELSE block)?
-    ;
-
-whileStatement
-    : WHILE LPAREN expression RPAREN block
-    ;
-
-returnStatement
-    : RETURN expression? SEMICOLON?
-    ;
-
-breakStatement
-    : BREAK SEMICOLON?
-    ;
-
-continueStatement
-    : CONTINUE SEMICOLON?
-    ;
-
 //  Blocks 
 
 block
@@ -292,31 +318,6 @@ block
     | singleStatement
     ;
 
-statementList
-    : (singleStatement)*
-    ;
-
-singleStatement
-    : (selectStatement
-    | insertStatement
-    | updateStatement
-    | deleteStatement
-    | mergeStatement
-    | grantStatement
-    | revokeStatement
-    | denyStatement
-    | transactionStatement
-    | ifStatement
-    | whileStatement
-    | returnStatement
-    | breakStatement
-    | continueStatement
-    | caseExpression
-    | createStatement
-    | alterStatement
-    | dropStatement
-    | truncateStatement) SEMICOLON?
-    ;
 
 //___________________________________________________________________________________________
 // Hala DDL Statements 

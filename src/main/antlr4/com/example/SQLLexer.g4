@@ -359,6 +359,12 @@ BIT_NOT: '~';
 LSHIFT: '<<';
 RSHIFT: '>>';
 
+PLUS_EQ  : '+=';
+MINUS_EQ : '-=';
+MULT_EQ  : '*=';
+DIV_EQ   : '/=';
+MOD_EQ   : '%=';
+
 COMMA: ',';
 SEMICOLON: ';';
 DOT: '.';
