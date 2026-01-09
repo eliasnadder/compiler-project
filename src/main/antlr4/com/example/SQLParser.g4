@@ -3,15 +3,15 @@ parser grammar SQLParser;
 options {
     tokenVocab = SQLLexer;
 }
-//! Updated: Replace '(' and ')' with LPAREN and RPAREN
 
-// ________________ Init ________________
-//! Updated: Replace statement* EOF with statementList EOF
+// ________________________ Entry Point 
+
 sqlScript
     : statementList EOF
     ;
 
-//* Updated: Add insert, update, delete, merge
+// ________________________ Statements 
+
 statement
     : selectStatement
     | insertStatement
@@ -29,10 +29,9 @@ statement
     | truncateStatement
     ;
 
-//_______________________________________bshr 
+// Bshr DML Statements 
 
-// ________________ SELECT Statements ________________
-
+// ---------------------- SELECT ---------------------------
 selectStatement
     : SELECT selectList
       fromClause?
@@ -59,22 +58,15 @@ tableSource
     : tableFactor (joinClause)*
     ;
 
-// tableFactor
-//     : IDENTIFIER (AS? IDENTIFIER)?
-//     | '(' selectStatement ')' AS? IDENTIFIER
-//     ;
-// ! Updated: Replace IDENTIFIER with qualifiedName
 tableFactor
     : qualifiedName (AS? IDENTIFIER)?
     | LPAREN selectStatement RPAREN AS? IDENTIFIER
     ;
 
-//! Updated: Relpace joinType JOIN with joinType? JOIN
 joinClause
     : joinType? JOIN tableFactor ON expression
     ;
 
-//! Updated: Add OUTER? to LEFT, RIGHT, FULL
 joinType
     : INNER
     | LEFT OUTER?
@@ -103,16 +95,14 @@ orderExpression
     : expression (ASC | DESC)?
     ;
 
-// ________________ INSERT Statement ________________
-
+// ---------------------- INSERT ---------------------------
 insertStatement
     : INSERT INTO qualifiedName (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)?
       (VALUES LPAREN expression (COMMA expression)* RPAREN (COMMA LPAREN expression (COMMA expression)* RPAREN)*
       | selectStatement)
     ;
 
-// ________________ UPDATE Statement ________________
-
+// ---------------------- UPDATE ---------------------------
 updateStatement
     : UPDATE qualifiedName
       SET assignmentClause (COMMA assignmentClause)*
@@ -123,15 +113,13 @@ assignmentClause
     : IDENTIFIER EQ expression
     ;
 
-// ________________ DELETE Statement ________________
-
+// ---------------------- DELETE ---------------------------
 deleteStatement
     : DELETE FROM qualifiedName
       whereClause?
     ;
 
-// ________________ MERGE Statement ________________
-
+// ---------------------- MERGE ----------------------------
 mergeStatement
     : MERGE INTO qualifiedName (AS? IDENTIFIER)?
       USING tableSource
@@ -150,43 +138,28 @@ mergeAction
     | INSERT (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)? VALUES LPAREN expression (COMMA expression)* RPAREN
     ;
 
-//_______________________________________elias
+//________________________________________________________________________________________________________________________________
 
-// ________________ Expressions & Predicates ________________
+// Aya 
 
-// expression
-//     : '(' expression ')'
-//     | expression AND expression
-//     | expression OR expression
-//     | NOT expression
-//     | predicate
-//     ;
-
-// predicate
-//     : expression comparisonOperator expression
-//     | functionCall
-//     | literal
-//     | IDENTIFIER
-//     ;
-
-//! Updated: merge expression and predicate rules into a single
+// Expressions
 
 expression
-    : LPAREN expression RPAREN                                                 # ParenExpression
-    | NOT expression                                                           # NotExpression
-    | expression (STAR | DIV | MOD) expression                                 # MultiplicativeExpression
-    | expression (PLUS | MINUS_OP) expression                                  # AdditiveExpression
-    | expression comparisonOperator expression                                 # ComparisonExpression
-    | expression AND expression                                                # AndExpression
-    | expression OR expression                                                 # OrExpression
-    | expression IS NOT? NULL                                                  # IsNullExpression
-    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN      # InExpression
-    | expression NOT? BETWEEN expression AND expression                        # BetweenExpression
-    | expression NOT? LIKE expression (ESCAPE expression)?                     # LikeExpression
-    | EXISTS LPAREN selectStatement RPAREN                                     # ExistsExpression
-    | functionCall                                                             # FunctionExpression
-    | qualifiedName                                                            # ColumnExpression
-    | literal                                                                  # LiteralExpression
+    : LPAREN expression RPAREN                                   # ParenExpression
+    | NOT expression                                             # NotExpression
+    | expression (STAR | DIV | MOD) expression                   # MultiplicativeExpression
+    | expression (PLUS | MINUS_OP) expression                    # AdditiveExpression
+    | expression comparisonOperator expression                   # ComparisonExpression
+    | expression AND expression                                  # AndExpression
+    | expression OR expression                                   # OrExpression
+    | expression IS NOT? NULL                                    # IsNullExpression
+    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN # InExpression
+    | expression NOT? BETWEEN expression AND expression          # BetweenExpression
+    | expression NOT? LIKE expression (ESCAPE expression)?       # LikeExpression
+    | EXISTS LPAREN selectStatement RPAREN                       # ExistsExpression
+    | functionCall                                               # FunctionExpression
+    | qualifiedName                                              # ColumnExpression
+    | literal                                                    # LiteralExpression
     ;
 
 expressionList
@@ -198,18 +171,11 @@ qualifiedName
     ;
 
 comparisonOperator
-    : EQ
-    | NEQ
-    | LT
-    | LE
-    | GT
-    | GE
+    : EQ | NEQ | LT | LE | GT | GE
     ;
 
-//______________________________________aya
-//______________________________________updated by elias
 
-// ________________ Functions ________________
+// function 
 
 functionCall
     : systemFunction
@@ -226,11 +192,11 @@ systemFunction
     ;
 
 aggregateFunction
-    : (COUNT|SUM|AVG|MIN|MAX) LPAREN (STAR | DISTINCT? expression) RPAREN (OVER LPAREN windowSpec RPAREN)?
+    : (COUNT | SUM | AVG | MIN | MAX) LPAREN (STAR | DISTINCT? expression) RPAREN (OVER LPAREN windowSpec RPAREN)?
     ;
 
 windowFunction
-    : (ROW_NUMBER|RANK|DENSE_RANK|NTILE) LPAREN RPAREN OVER LPAREN windowSpec RPAREN
+    : (ROW_NUMBER | RANK | DENSE_RANK | NTILE) LPAREN RPAREN OVER LPAREN windowSpec RPAREN
     ;
 
 userFunction
@@ -241,9 +207,12 @@ windowSpec
     : (PARTITION BY expression (COMMA expression)*)? (ORDER BY orderExpression (COMMA orderExpression)*)?
     ;
 
-// ________________ Literals ________________
-//! Updated: added TRUE, FALSE, NULL
-//! Fixed string literals string and numbers
+//________________________________________________________________________________________________________________________________
+
+// Elias 
+
+// Literals 
+
 literal
     : STRING_LITERAL
     | INT_LITERAL
@@ -254,8 +223,8 @@ literal
     | NULL
     ;
 
-// ________________ Security Statements ________________
-//! Updated: Replace ON qualifiedName with ON qualifiedName
+// Security Statements
+
 grantStatement
     : GRANT IDENTIFIER ON qualifiedName TO IDENTIFIER
     ;
@@ -268,7 +237,7 @@ denyStatement
     : DENY IDENTIFIER ON qualifiedName TO IDENTIFIER
     ;
 
-// ________________ Transaction Control ________________
+//  Transaction 
 
 transactionStatement
     : BEGIN TRANSACTION?
@@ -277,7 +246,7 @@ transactionStatement
     | SAVEPOINT IDENTIFIER
     ;
 
-// ________________ Control Flow Statements ________________
+//  Control Flow 
 
 controlFlowStatement
     : caseExpression
@@ -296,7 +265,6 @@ whenClause
     : WHEN expression THEN expression
     ;
 
-//! Updated: Add optional ELSE block to ifStatement
 ifStatement
     : IF LPAREN expression RPAREN block (ELSE block)?
     ;
@@ -305,7 +273,6 @@ whileStatement
     : WHILE LPAREN expression RPAREN block
     ;
 
-//! Updated: Add optional SEMICOLON to returnStatement
 returnStatement
     : RETURN expression? SEMICOLON?
     ;
@@ -318,7 +285,8 @@ continueStatement
     : CONTINUE SEMICOLON?
     ;
 
-//! Updated: Replace (statement)* with statementList
+//  Blocks 
+
 block
     : LBRACE statementList RBRACE
     | singleStatement
@@ -349,148 +317,117 @@ singleStatement
     | dropStatement
     | truncateStatement) SEMICOLON?
     ;
-//______________________________________Hala
-//________________Create________________
-createStatement:
-    CREATE createObject;
-createObject:
-    createDatabase
-    |createTable
-    |createView
-    |createIndex
+
+//___________________________________________________________________________________________
+// Hala DDL Statements 
+
+createStatement
+    : CREATE createObject
     ;
 
-    
+createObject
+    : createDatabase
+    | createTable
+    | createView
+    | createIndex
+    ;
+
+createDatabase
+    : DATABASE IF_NOT_EXISTS? databaseName
+    ;
+
+databaseName
+    : IDENTIFIER
+    ;
+
+createTable
+    : TABLE IF_NOT_EXISTS? tableName LPAREN columnDefinition (COMMA columnDefinition)* RPAREN
+    ;
+
+tableName
+    : IDENTIFIER
+    ;
+
+columnDefinition
+    : columnName datatype columnConstraint*
+    ;
+
 columnName
     : IDENTIFIER
     ;
-datatype:
-    INT
-    |BIGINT
-    |TINYINT
-    |SMALLINT
-    |DECIMAL
-    |NUMERIC
-    |FLOAT
-    |DOUBLE
-    |REAL
-    |BOOLEAN
-    |BOOL
-    |CHAR
-    |VARCHAR
-    |TEXT
-    |ENUM
-    |SET
-    |DATETIME
-    |DATE
-    |TIME
-    |TIMESTAMP
-    |YEAR
-    |BINARY
-    |VARBINARY
-    |BLOB
-    |JSON
-    |UUID
-    |BIT;
+
+datatype
+    : INT | BIGINT | TINYINT | SMALLINT | DECIMAL | NUMERIC | FLOAT | DOUBLE | REAL
+    | BOOLEAN | BOOL | CHAR | VARCHAR | TEXT | ENUM | SET | DATETIME | DATE | TIME
+    | TIMESTAMP | YEAR | BINARY | VARBINARY | BLOB | JSON | UUID | BIT
+    ;
+
 columnConstraint
     : PRIMARY KEY
     | FOREIGN KEY
     | UNIQUE
     | DEFAULT literal?
-    | CHECK '(' expression ')'
+    | CHECK LPAREN expression RPAREN
     | ON UPDATE expression
     | COLLATE IDENTIFIER
     | BINARY
     ;
 
-
-columnDefinition:columnName datatype columnConstraint*;
-
-createDatabase:
-    DATABASE IF_NOT_EXISTS? databaseName;
-
-databaseName:IDENTIFIER;
-
-createTable:
-    TABLE IF_NOT_EXISTS? tableName
-    LPAREN columnDefinition (COMMA columnDefinition)* RPAREN;
-
-tableName:IDENTIFIER;
-
-viewName:IDENTIFIER;
-
-createView:
-    VIEW IF_NOT_EXISTS? viewName AS selectStatement;
-
-indexName:IDENTIFIER;
-
-createIndex:
-    INDEX indexName ON tableName LPAREN columnName (COMMA columnName)* RPAREN;
-//________________Alter_______________________
-alterStatement:
-    ALTER alterObject;
-
-alterObject:
-    alterTable
+createView
+    : VIEW IF_NOT_EXISTS? viewName AS selectStatement
     ;
 
-alterTable:
-    TABLE tableName alterTableAction  (COMMA alterTableAction)*
+viewName
+    : IDENTIFIER
     ;
 
-oldColumnName:
-    IDENTIFIER
+createIndex
+    : INDEX indexName ON tableName LPAREN columnName (COMMA columnName)* RPAREN
     ;
 
-newColumnName:
-    IDENTIFIER
-    ;
-newTableName:
-    IDENTIFIER
+indexName
+    : IDENTIFIER
     ;
 
-constraintName:
-    IDENTIFIER
+//  ALTER Statements 
+
+alterStatement
+    : ALTER alterObject
     ;
 
-
-alterTableAction:
-    addColumn
-    |dropColumn
-    |modifyColumn
-    |changeColumn
-    |renameColumn
-    |renameTable
-    |addConstraint
-    |dropConstraint
-    |addIndex
-    |dropColumnIndex
-    |alterColumnDefault
+alterObject
+    : alterTable
     ;
 
-addColumn:
-    ADD COLUMN columnDefinition
+alterTable
+    : TABLE tableName alterTableAction (COMMA alterTableAction)*
     ;
 
-dropColumn:
-    DROP COLUMN columnName
+alterTableAction
+    : addColumn
+    | dropColumn
+    | modifyColumn
+    | changeColumn
+    | renameColumn
+    | renameTable
+    | addConstraint
+    | dropConstraint
+    | addIndex
+    | dropColumnIndex
+    | alterColumnDefault
     ;
 
-modifyColumn:
-    MODIFY COLUMN columnDefinition
-    ;
-
-changeColumn:
-    CHANGE COLUMN oldColumnName columnDefinition
-    ;
-
-renameColumn:
-    RENAME COLUMN oldColumnName TO newColumnName
-    ;
-
-renameTable:
-    RENAME TO newTableName
-    ;
+addColumn       : ADD COLUMN columnDefinition;
+dropColumn      : DROP COLUMN columnName;
+modifyColumn    : MODIFY COLUMN columnDefinition;
+changeColumn    : CHANGE COLUMN IDENTIFIER columnDefinition;
+renameColumn    : RENAME COLUMN IDENTIFIER TO IDENTIFIER;
+renameTable     : RENAME TO IDENTIFIER;
+addConstraint   : ADD (CONSTRAINT IDENTIFIER)? tableConstraint;
+dropConstraint  : DROP (PRIMARY KEY | FOREIGN KEY IDENTIFIER | INDEX IDENTIFIER | KEY IDENTIFIER | CONSTRAINT IDENTIFIER | CHECK IDENTIFIER);
+addIndex        : ADD (UNIQUE)? (INDEX | KEY) IDENTIFIER LPAREN columnName (COMMA columnName)* RPAREN;
+dropColumnIndex : DROP (INDEX | KEY) IDENTIFIER;
+alterColumnDefault: ALTER COLUMN columnName (SET DEFAULT defaultValue | DROP DEFAULT);
 
 tableConstraint
     : PRIMARY KEY LPAREN columnList RPAREN
@@ -503,28 +440,6 @@ columnList
     : columnName (COMMA columnName)*
     ;
 
-addConstraint
-    : ADD (CONSTRAINT constraintName)? tableConstraint
-    ;
-
-dropConstraint:
-      DROP (
-          PRIMARY KEY
-        | FOREIGN KEY constraintName
-        | INDEX constraintName
-        | KEY constraintName
-        | CONSTRAINT constraintName
-        | CHECK constraintName
-      )
-    ;
-
-
-addIndex:
-    ADD (UNIQUE)? (INDEX | KEY) indexName LPAREN columnName (COMMA columnName)* RPAREN
-    ;
-dropColumnIndex:
-    DROP (INDEX|KEY) indexName
-    ;
 defaultValue
     : STRING_LITERAL
     | INT_LITERAL
@@ -534,61 +449,52 @@ defaultValue
     | NULL
     ;
 
-alterColumnDefault:
-    ALTER COLUMN columnName (SET DEFAULT defaultValue|DROP DEFAULT)
+//  DROP Statements 
+
+dropStatement
+    : DROP dropObject
     ;
 
-
-
-//________________Drop__________________________
-dropStatement:
-    DROP dropObject;
-
-dropObject:
-    dropTable
-    |dropDatabase
-    |dropView
-    |dropIndex
+dropObject
+    : dropTable
+    | dropDatabase
+    | dropView
+    | dropIndex
     ;
 
-dropDatabase:
-    DATABASE (IF_EXISTS)? databaseName
+dropDatabase
+    : DATABASE (IF_EXISTS)? databaseName
     ;
 
-dropTable:
-    TABLE (IF_EXISTS)? tableName (COMMA tableName)?
+dropTable
+    : TABLE (IF_EXISTS)? tableName (COMMA tableName)?
     ;
 
-dropView:
-    VIEW (IF_EXISTS)? viewName (COMMA viewName)*
+dropView
+    : VIEW (IF_EXISTS)? viewName (COMMA viewName)*
     ;
 
-dropIndex:
-    INDEX indexName ON tableName 
+dropIndex
+    : INDEX indexName ON tableName
     ;
 
-//________________Truncate________________________
+//  TRUNCATE Statements 
 
-truncateStatement:
-    TRUNCATE truncateObject
+truncateStatement
+    : TRUNCATE truncateObject
     ;
 
-truncateObject:
-    truncateTable
+truncateObject
+    : truncateTable
     ;
 
-truncateTable:
-    TABLE (IF_EXISTS)? tableName (COMMA tableName)* truncateOption*;
-
-truncateOption:
-    CASCADE
-    |RESTRICT
-    |RESTART IDENTITY
-    |CONTINUE IDENTITY
+truncateTable
+    : TABLE (IF_EXISTS)? tableName (COMMA tableName)* truncateOption*
     ;
 
-
-    
-    
-
-
+truncateOption
+    : CASCADE
+    | RESTRICT
+    | RESTART IDENTITY
+    | CONTINUE IDENTITY
+    ;
