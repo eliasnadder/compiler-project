@@ -100,10 +100,6 @@ orderByClause
     : ORDER BY orderExpression (COMMA orderExpression)*
     ;
 
-orderExpression
-    : expression (ASC | DESC)?
-    ;
-
 //___________________________________________________________________________________________
 
 //Elias
@@ -214,21 +210,21 @@ continueStatement
 // Expressions
 
 expression
-    : LPAREN expression RPAREN                                   # ParenExpression
-    | NOT expression                                             # NotExpression
-    | expression (STAR | DIV | MOD) expression                   # MultiplicativeExpression
-    | expression (PLUS | MINUS_OP) expression                    # AdditiveExpression
-    | expression comparisonOperator expression                   # ComparisonExpression
-    | expression AND expression                                  # AndExpression
-    | expression OR expression                                   # OrExpression
-    | expression IS NOT? NULL                                    # IsNullExpression
-    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN # InExpression
-    | expression NOT? BETWEEN expression AND expression          # BetweenExpression
-    | expression NOT? LIKE expression (ESCAPE expression)?       # LikeExpression
-    | EXISTS LPAREN selectStatement RPAREN                       # ExistsExpression
-    | functionCall                                               # FunctionExpression
-    | qualifiedName                                              # ColumnExpression
-    | literal                                                    # LiteralExpression
+    : LPAREN expression RPAREN                                   # ()
+    | NOT expression                                             # Not
+    | expression (STAR | DIV | MOD) expression                   # / * %
+    | expression (PLUS | MINUS_OP) expression                    # + -
+    | expression comparisonOperator expression                   # < > <= >= = !=
+    | expression AND expression                                  # AND
+    | expression OR expression                                   # OR
+    | expression IS NOT? NULL                                    # Is Null  - IS NOT NULL
+    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN     # NOT IN () - IN ()
+    | expression NOT? BETWEEN expression AND expression          # BETWEEN - NOT BETWEEN
+    | expression NOT? LIKE expression (ESCAPE expression)?       # LIKE - NOT LIKE ESCAPE
+    | EXISTS LPAREN selectStatement RPAREN                       # EXISTS
+    | functionCall                                               # SQL function
+    | qualifiedName                                              # column
+    | literal                                                    # static values
     ;
 
 expressionList
@@ -243,8 +239,11 @@ comparisonOperator
     : EQ | NEQ | LT | LE | GT | GE
     ;
 
+orderExpression
+    : expression (ASC | DESC)?
+    ;
 
-// function 
+#__________________functions__
 
 functionCall
     : systemFunction
@@ -261,11 +260,14 @@ systemFunction
     ;
 
 aggregateFunction
-    : (COUNT | SUM | AVG | MIN | MAX) LPAREN (STAR | DISTINCT? expression) RPAREN (OVER LPAREN windowSpec RPAREN)?
+    : (COUNT | SUM | AVG | MIN | MAX) 
+    LPAREN (STAR | DISTINCT? expression) RPAREN 
+    (OVER LPAREN windowSpec RPAREN)?
     ;
 
 windowFunction
-    : (ROW_NUMBER | RANK | DENSE_RANK | NTILE) LPAREN RPAREN OVER LPAREN windowSpec RPAREN
+    : (ROW_NUMBER | RANK | DENSE_RANK | NTILE) 
+    LPAREN RPAREN OVER LPAREN windowSpec RPAREN
     ;
 
 userFunction
@@ -273,10 +275,12 @@ userFunction
     ;
 
 windowSpec
-    : (PARTITION BY expression (COMMA expression)*)? (ORDER BY orderExpression (COMMA orderExpression)*)?
+    : (PARTITION BY expression (COMMA expression)*)? 
+    (ORDER BY orderExpression (COMMA orderExpression)*)?
     ;
 
-// Literals 
+
+// ____________Literals____ 
 
 literal
     : STRING_LITERAL
@@ -288,7 +292,7 @@ literal
     | NULL
     ;
 
-// Security Statements
+// __________________Security Statements_________
 
 grantStatement
     : GRANT IDENTIFIER ON qualifiedName TO IDENTIFIER
@@ -302,7 +306,7 @@ denyStatement
     : DENY IDENTIFIER ON qualifiedName TO IDENTIFIER
     ;
 
-//  Transaction 
+//  ____________Transaction__________
 
 transactionStatement
     : BEGIN TRANSACTION?
@@ -311,7 +315,7 @@ transactionStatement
     | SAVEPOINT IDENTIFIER
     ;
 
-//  Blocks 
+//  ___________Blocks_____ 
 
 block
     : LBRACE statementList RBRACE

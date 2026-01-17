@@ -5,32 +5,49 @@ import org.antlr.v4.runtime.tree.*;
 import java.nio.file.*;
 
 public class TestParser {
-    private static void printTree(ParseTree tree, SQLParser parser, String prefix, boolean isTail, StringBuilder sb) {
-        if (tree == null)
-            return;
 
-        String nodeName;
+    private static void printTree(
+            ParseTree tree,
+            SQLParser parser,
+            String prefix,
+            boolean isLast,
+            StringBuilder sb
+    ) {
+        if (tree == null) return;
+
+        String nodeLabel;
 
         if (tree instanceof TerminalNode) {
             Token token = ((TerminalNode) tree).getSymbol();
-            String type = parser.getVocabulary().getSymbolicName(token.getType());
             String text = token.getText();
+            String type = parser.getVocabulary().getSymbolicName(token.getType());
 
-            if (text.equals(".") || text.equals(",") || text.equals(";") || text.equals("(") || text.equals(")")) {
-                return;
-            }
+            // تجاهل الرموز اللي بتكعجق العرض فقط
+            if (text.matches("[.,();]")) return;
 
-            nodeName = text + " [" + type + "]";
+            nodeLabel = "'" + text + "' <" + type + ">";
         } else {
             ParserRuleContext ctx = (ParserRuleContext) tree;
-            nodeName = parser.getRuleNames()[ctx.getRuleIndex()];
+            nodeLabel = ctx.getClass().getSimpleName()
+                    .replace("Context", "");
         }
 
-        sb.append(prefix + (isTail ? "└── " : "├── ") + nodeName + "\n");
+        sb.append(prefix)
+          .append(isLast ? "└── " : "├── ")
+          .append(nodeLabel)
+          .append("\n");
 
+        String childPrefix = prefix + (isLast ? "    " : "│   ");
         int childCount = tree.getChildCount();
+
         for (int i = 0; i < childCount; i++) {
-            printTree(tree.getChild(i), parser, prefix + (isTail ? "    " : "│   "), i == childCount - 1, sb);
+            printTree(
+                    tree.getChild(i),
+                    parser,
+                    childPrefix,
+                    i == childCount - 1,
+                    sb
+            );
         }
     }
 
