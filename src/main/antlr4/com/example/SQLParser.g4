@@ -210,21 +210,21 @@ continueStatement
 // Expressions
 
 expression
-    : LPAREN expression RPAREN                                   # ()
-    | NOT expression                                             # Not
-    | expression (STAR | DIV | MOD) expression                   # / * %
-    | expression (PLUS | MINUS_OP) expression                    # + -
-    | expression comparisonOperator expression                   # < > <= >= = !=
-    | expression AND expression                                  # AND
-    | expression OR expression                                   # OR
-    | expression IS NOT? NULL                                    # Is Null  - IS NOT NULL
-    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN     # NOT IN () - IN ()
-    | expression NOT? BETWEEN expression AND expression          # BETWEEN - NOT BETWEEN
-    | expression NOT? LIKE expression (ESCAPE expression)?       # LIKE - NOT LIKE ESCAPE
-    | EXISTS LPAREN selectStatement RPAREN                       # EXISTS
-    | functionCall                                               # SQL function
-    | qualifiedName                                              # column
-    | literal                                                    # static values
+    : LPAREN expression RPAREN                                                // ()
+    | NOT expression                                                          // Not
+    | expression (STAR | DIV | MOD) expression                                // / * %
+    | expression (PLUS | MINUS_OP) expression                                 // + -
+    | expression comparisonOperator expression                                // < > <= >= = !=
+    | expression AND expression                                               // AND
+    | expression OR expression                                                // OR
+    | expression IS NOT? NULL                                                 // Is Null  - IS NOT NULL
+    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN     // NOT IN () - IN ()
+    | expression NOT? BETWEEN expression AND expression                       // BETWEEN - NOT BETWEEN
+    | expression NOT? LIKE expression (ESCAPE expression)?                    // LIKE - NOT LIKE ESCAPE
+    | EXISTS LPAREN selectStatement RPAREN                                    // EXISTS
+    | functionCall                                                            // SQL function
+    | qualifiedName                                                           // column
+    | literal                                                                 // static values
     ;
 
 expressionList
@@ -243,7 +243,7 @@ orderExpression
     : expression (ASC | DESC)?
     ;
 
-#__________________functions__
+// __________________functions__
 
 functionCall
     : systemFunction
