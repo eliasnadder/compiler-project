@@ -3,7 +3,7 @@ package com.example.DML;
 import com.example.ASTNode;
 
 public class DMLStatementsAST {
-    // ========================= Elias ==========================
+    // ========================= Bshr ==========================
     // ==================== INSERT Statement ====================
 
     // INSERT node
@@ -81,6 +81,7 @@ public class DMLStatementsAST {
         public AssignmentNode(String columnName, String operator) {
             this.columnName = columnName;
             this.operator = operator;
+            
         }
 
         public String getColumnName() {
@@ -171,4 +172,97 @@ public class DMLStatementsAST {
             return "Action: " + actionType;
         }
     }
+    // ==================== SELECT Statement ====================
+
+    public class SelectStatementNode extends ASTNode {
+
+        @Override
+        public String getNodeType() {
+            return "SELECT";
+        }
+    }
+    public class SelectItemNode extends ASTNode {
+    private boolean hasAlias;
+
+    public SelectItemNode(boolean hasAlias) {
+        this.hasAlias = hasAlias;
+    }
+
+    @Override
+    public String getNodeType() {
+        return hasAlias ? "SelectItem (with alias)" : "SelectItem";
+    }
+    }
+
+    public class FromClauseNode extends ASTNode {
+
+        @Override
+        public String getNodeType() {
+            return "FROM";
+        }
+    }
+    public class WhereClauseNode extends ASTNode {
+
+        @Override
+        public String getNodeType() {
+            return "WHERE";
+        }
+    }
+    public class OrderByClauseNode extends ASTNode {
+
+        @Override
+        public String getNodeType() {
+            return "ORDER BY";
+        }
+    }
+    public class OrderItemNode extends ASTNode {
+        private boolean isAsc;
+
+        public OrderItemNode(boolean isAsc) {
+            this.isAsc = isAsc;
+        }
+
+        @Override
+        public String getNodeType() {
+            return isAsc ? "OrderItem ASC" : "OrderItem DESC";
+        }
+    }
+
+    public class GroupByClauseNode extends ASTNode {
+        @Override
+        public String getNodeType() {
+            return "GROUP BY";
+        }
+    }
+    public class HavingClauseNode extends ASTNode {
+        @Override
+        public String getNodeType() {
+            return "HAVING";
+        }
+    }
+    public class JoinClauseNode extends ASTNode {
+        private String joinType; // INNER, LEFT, RIGHT, FULL, CROSS
+
+        public JoinClauseNode(String joinType) {
+            this.joinType = joinType;
+        }
+
+        @Override
+        public String getNodeType() {
+            return "JOIN (" + joinType + ")";
+        }
+    }
+    public class TableAliasNode extends ASTNode {
+        private String alias;
+
+        public TableAliasNode(String alias) {
+            this.alias = alias;
+        }
+
+        @Override
+        public String getNodeType() {
+            return "TableAlias: " + alias;
+        }
+    }
+
 }
