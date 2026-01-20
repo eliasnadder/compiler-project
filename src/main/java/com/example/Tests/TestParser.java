@@ -1,7 +1,11 @@
-package com.example;
+package com.example.Tests;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
+
+import com.example.SQLLexer;
+import com.example.SQLParser;
+
 import java.nio.file.*;
 
 public class TestParser {
@@ -44,6 +48,14 @@ public class TestParser {
         SQLParser parser = new SQLParser(tokens);
 
         ParseTree tree = parser.sqlScript();
+
+        if (parser.getNumberOfSyntaxErrors() > 0) {
+            System.err.println("❌ Parsing failed with " + parser.getNumberOfSyntaxErrors() + " errors!");
+            return;
+        }
+
+        System.out.println("✅ Parsing completed successfully!\n");
+
 
         StringBuilder sb = new StringBuilder();
         printTree(tree, parser, "", true, sb);

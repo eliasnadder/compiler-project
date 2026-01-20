@@ -1,6 +1,9 @@
-package com.example;
+package com.example.Tests;
 
 import org.antlr.v4.runtime.*;
+
+import com.example.SQLLexer;
+
 import java.io.*;
 import java.nio.file.*;
 
