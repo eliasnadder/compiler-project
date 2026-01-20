@@ -40,6 +40,8 @@ coreStatement
     | alterStatement
     | dropStatement
     | truncateStatement
+    | useStatement          //! ADDED
+    | goStatement           //! ADDED
     ;
 
 // __________________ WITH (CTE) ___________________
@@ -65,6 +67,7 @@ selectStatement
       groupByClause?
       havingClause?
       orderByClause?
+      limitClause?         //! ADDED
       returningClause?
     ;
 
@@ -74,7 +77,13 @@ selectList
     ;
 
 selectItem
-    : expression (AS? IDENTIFIER)?
+    : expression (AS? alias)?    //! CHANGED to support string aliases
+    ;
+
+//! Alias can be IDENTIFIER or STRING_LITERAL
+alias
+    : IDENTIFIER
+    | STRING_LITERAL
     ;
 
 // From clause with aliasing and joins
@@ -86,9 +95,10 @@ tableSource
     : tableFactor (joinClause)*
     ;
 
+//! Fixed
 tableFactor
-    : qualifiedName (AS? IDENTIFIER)?
-    | LPAREN selectStatement RPAREN AS? IDENTIFIER
+    : qualifiedName (AS? alias)?
+    | LPAREN selectStatement RPAREN AS? alias
     ;
 
 joinClause
@@ -104,7 +114,7 @@ joinType
     | CROSS
     ;
 
-// ________________________ WHERE, GROUP BY, HAVING, ORDER BY
+// ________________________ WHERE, GROUP BY, HAVING, ORDER BY, LIMIT
 
 whereClause
     : WHERE expression
@@ -120,6 +130,13 @@ havingClause
 
 orderByClause
     : ORDER BY orderExpression (COMMA orderExpression)*
+    ;
+
+//! Added
+limitClause
+    : LIMIT expression (OFFSET expression)?
+    | OFFSET expression
+    | FETCH NEXT expression ROWS? ONLY
     ;
 
 // Returning clause for DML
@@ -150,7 +167,7 @@ deleteStatement
     ;
 
 mergeStatement
-    : MERGE INTO qualifiedName (AS? IDENTIFIER)?
+    : MERGE INTO qualifiedName (AS? alias)?
       USING tableSource
       ON expression
       whenClauseMerge+
@@ -172,6 +189,16 @@ mergeAction
 updateAssignment
     : IDENTIFIER EQ expression
     | IDENTIFIER (PLUS_EQ | MINUS_EQ | MULT_EQ | DIV_EQ | MOD_EQ) expression
+    ;
+
+// ________________________ USE and GO Statements 
+//! Fixed
+useStatement
+    : USE IDENTIFIER
+    ;
+
+goStatement
+    : GO
     ;
 
 // ________________________ Cursor Statements 
@@ -227,10 +254,11 @@ continueStatement
     : CONTINUE SEMICOLON?
     ;
 
-// ________________________ Expressions (with CASE, CAST, improved)
+// ________________________ Expressions (FIXED to support scalar subqueries)
 
 expression
-    : LPAREN expression RPAREN                                                // ()
+    : LPAREN expression RPAREN                                                //! Parentheses
+    | LPAREN selectStatement RPAREN                                           //! ADDED: Scalar subquery
     | NOT expression                                                          // Not
     | expression (STAR | DIV | MOD) expression                                // / * %
     | expression (PLUS | MINUS_OP) expression                                 // + -
@@ -242,8 +270,8 @@ expression
     | expression NOT? BETWEEN expression AND expression                       // BETWEEN - NOT BETWEEN
     | expression NOT? LIKE expression (ESCAPE expression)?                    // LIKE - NOT LIKE ESCAPE
     | EXISTS LPAREN selectStatement RPAREN                                    // EXISTS
-    | CASE whenClause+ (ELSE expression)? END                                // CASE expression
-    | CAST LPAREN expression AS datatype RPAREN                              // CAST
+    | CASE whenClause+ (ELSE expression)? END                                 // CASE expression
+    | CAST LPAREN expression AS datatype RPAREN                               // CAST
     | functionCall                                                            // SQL function
     | qualifiedName                                                           // column
     | literal                                                                 // static values
@@ -263,7 +291,7 @@ comparisonOperator
     ;
 
 orderExpression
-    : expression (ASC | DESC)?
+    : expression (ASC | DESC)? (NULLS (FIRST | LAST))?
     ;
 
 // ________________________ Functions
@@ -297,9 +325,24 @@ userFunction
     : IDENTIFIER LPAREN (expression (COMMA expression)*)? RPAREN
     ;
 
+//! Fixed
 windowSpec
     : (PARTITION BY expression (COMMA expression)*)? 
     (ORDER BY orderExpression (COMMA orderExpression)*)?
+    (frameClause)?
+    ;
+
+frameClause
+    : (ROWS | RANGE | GROUPS) frameBound
+    | (ROWS | RANGE | GROUPS) BETWEEN frameBound AND frameBound
+    ;
+
+frameBound
+    : UNBOUNDED PRECEDING
+    | UNBOUNDED FOLLOWING
+    | CURRENT ROW
+    | expression PRECEDING
+    | expression FOLLOWING
     ;
 
 // ________________________ Literals
@@ -333,7 +376,7 @@ denyStatement
 transactionStatement
     : BEGIN TRANSACTION?
     | COMMIT
-    | ROLLBACK
+    | ROLLBACK (TO SAVEPOINT? IDENTIFIER)?
     | SAVEPOINT IDENTIFIER
     ;
 
@@ -344,14 +387,7 @@ block
     | singleStatement
     ;
 
-// ________________________ DDL Statements (As before)
-// ... (Same as in your original grammar)
-
-
-
-
-//___________________________________________________________________________________________
-// Hala DDL Statements 
+// ________________________ DDL Statements
 
 createStatement
     : CREATE createObject
@@ -388,10 +424,17 @@ columnName
     : IDENTIFIER
     ;
 
+//!Fixed
 datatype
     : INT | BIGINT | TINYINT | SMALLINT | DECIMAL | NUMERIC | FLOAT | DOUBLE | REAL
     | BOOLEAN | BOOL | CHAR | VARCHAR | TEXT | ENUM | SET | DATETIME | DATE | TIME
     | TIMESTAMP | YEAR | BINARY | VARBINARY | BLOB | JSON | UUID | BIT
+    | VARCHAR2 | NVARCHAR | NCHAR | CLOB | JSONB | XML | MONEY | VARBIT | IMAGE | ARRAY | STRUCT | MAP
+    | INT LPAREN INT_LITERAL RPAREN
+    | DECIMAL LPAREN INT_LITERAL COMMA INT_LITERAL RPAREN
+    | VARCHAR LPAREN INT_LITERAL RPAREN
+    | CHAR LPAREN INT_LITERAL RPAREN
+    | DOUBLE PRECISION
     ;
 
 columnConstraint
@@ -403,6 +446,9 @@ columnConstraint
     | ON UPDATE expression
     | COLLATE IDENTIFIER
     | BINARY
+    | NOT NULL          //! Added
+    | NULL              //! Added
+    | AUTO_INCREMENT    //! Added
     ;
 
 createView
