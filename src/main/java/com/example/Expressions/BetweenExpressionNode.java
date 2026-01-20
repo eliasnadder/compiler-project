@@ -1,7 +1,6 @@
 package com.example.Expressions;
 
-
-public class BetweenExpressionNode extends ExpressionNode{
+public class BetweenExpressionNode extends ExpressionNode {
 
     private ExpressionNode expr;
     private ExpressionNode start;
@@ -9,11 +8,10 @@ public class BetweenExpressionNode extends ExpressionNode{
     private boolean not;
 
     public BetweenExpressionNode(
-        ExpressionNode expr, 
-        ExpressionNode start, 
-        ExpressionNode end, 
-        boolean not
-    ) {
+            ExpressionNode expr,
+            ExpressionNode start,
+            ExpressionNode end,
+            boolean not) {
         this.expr = expr;
         this.start = start;
         this.end = end;
@@ -23,12 +21,25 @@ public class BetweenExpressionNode extends ExpressionNode{
         addChild(start);
         addChild(end);
     }
-    
-    public ExpressionNode getExpr() { return expr; }
-    public ExpressionNode getStart() { return start; }
-    public ExpressionNode getEnd() { return end; }
-    public boolean isNot() { return not; }
+
+    public ExpressionNode getExpr() {
+        return expr;
+    }
+
+    public ExpressionNode getStart() {
+        return start;
+    }
+
+    public ExpressionNode getEnd() {
+        return end;
+    }
+
+    public boolean isNot() {
+        return not;
+    }
 
     @Override
-    public String getNodeType() { return not ? "NOT_BETWEEN" : "BETWEEN"; }
+    public String getNodeType() {
+        return not ? "NOT_BETWEEN" : "BETWEEN";
+    }
 }

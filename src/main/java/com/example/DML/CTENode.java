@@ -1,7 +1,6 @@
 package com.example.DML;
 
 import com.example.ASTNode;
-import com.example.DML.SelectNode;
 
 public class CTENode extends ASTNode {
     private String name;
@@ -13,8 +12,13 @@ public class CTENode extends ASTNode {
         addChild(select);
     }
 
-    public String getName() { return name; }
-    public SelectNode getSelect() { return select; }
+    public String getName() {
+        return name;
+    }
+
+    public SelectNode getSelect() {
+        return select;
+    }
 
     @Override
     public String getNodeType() {

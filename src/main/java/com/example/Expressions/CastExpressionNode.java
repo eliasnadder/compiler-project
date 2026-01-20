@@ -1,6 +1,5 @@
 package com.example.Expressions;
 
-
 public class CastExpressionNode extends ExpressionNode {
 
     private ExpressionNode expr;
@@ -13,8 +12,13 @@ public class CastExpressionNode extends ExpressionNode {
         addChild(expr);
     }
 
-    public ExpressionNode getExpr() { return expr; }
-    public String getDataType() { return dataType; }
+    public ExpressionNode getExpr() {
+        return expr;
+    }
+
+    public String getDataType() {
+        return dataType;
+    }
 
     @Override
     public String getNodeType() {

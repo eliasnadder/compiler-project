@@ -6,19 +6,25 @@ public class UnaryExpressionNode extends ExpressionNode {
     private ExpressionNode operand;
 
     public UnaryExpressionNode(
-        String operator, 
-        ExpressionNode operand
-    ) {
+            String operator,
+            ExpressionNode operand) {
         this.operator = operator;
         this.operand = operand;
 
         addChild(operand);
     }
 
-    public String getOperator() { return operator; }
-    public ExpressionNode getOperand() { return operand; }
+    public String getOperator() {
+        return operator;
+    }
+
+    public ExpressionNode getOperand() {
+        return operand;
+    }
 
     @Override
-    public String getNodeType() { return "UNARY(" + operator + ")"; }
-    
+    public String getNodeType() {
+        return "UNARY(" + operator + ")";
+    }
+
 }

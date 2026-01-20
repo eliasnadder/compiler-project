@@ -7,10 +7,9 @@ public class BinaryExpressionNode extends ExpressionNode {
     private ExpressionNode right;
 
     public BinaryExpressionNode(
-        ExpressionNode left, 
-        String operator, 
-        ExpressionNode right
-    ) {
+            ExpressionNode left,
+            String operator,
+            ExpressionNode right) {
         this.left = left;
         this.operator = operator;
         this.right = right;
@@ -18,10 +17,17 @@ public class BinaryExpressionNode extends ExpressionNode {
         addChild(left);
         addChild(right);
     }
-    
-    public String getOperator() { return operator; }
-    public ExpressionNode getRight() { return right; }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public ExpressionNode getRight() {
+        return right;
+    }
 
     @Override
-    public String getNodeType() { return "BINARY(" + operator + ")"; }
+    public String getNodeType() {
+        return "BINARY(" + operator + ")";
+    }
 }

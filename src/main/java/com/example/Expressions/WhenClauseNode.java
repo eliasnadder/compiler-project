@@ -1,7 +1,6 @@
 package com.example.Expressions;
 
 import com.example.ASTNode;
-import com.example.Expressions.ExpressionNode;
 
 public class WhenClauseNode extends ASTNode {
     private ExpressionNode condition;

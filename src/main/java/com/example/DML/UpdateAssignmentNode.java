@@ -17,9 +17,17 @@ public class UpdateAssignmentNode extends ASTNode {
         addChild(value);
     }
 
-    public String getColumn() { return column; }
-    public String getOperator() { return operator; }
-    public ExpressionNode getValue() { return value; }
+    public String getColumn() {
+        return column;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public ExpressionNode getValue() {
+        return value;
+    }
 
     @Override
     public String getNodeType() {

@@ -2,7 +2,6 @@ package com.example;
 
 import com.example.DML.*;
 import com.example.Expressions.*;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.*;
 
@@ -16,7 +15,8 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         if (ctx.statementList() != null) {
             for (SQLParser.SingleStatementContext stmt : ctx.statementList().singleStatement()) {
                 ASTNode node = visit(stmt);
-                if (node != null) statements.add(node);
+                if (node != null)
+                    statements.add(node);
             }
         }
         return new ASTNodeList(statements);
@@ -106,8 +106,10 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
                 if ("(".equals(ctx.getChild(qualifiedNameIndex + 1).getText())) {
                     for (int i = qualifiedNameIndex + 2; i < ctx.getChildCount(); i++) {
                         String txt = ctx.getChild(i).getText();
-                        if (")".equals(txt)) break;
-                        if (!",".equals(txt)) columns.add(txt);
+                        if (")".equals(txt))
+                            break;
+                        if (!",".equals(txt))
+                            columns.add(txt);
                     }
                 }
             }
@@ -128,11 +130,11 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
                         }
                         j++;
                     }
-                    if (!row.isEmpty()) rows.add(row);
+                    if (!row.isEmpty())
+                        rows.add(row);
                 }
             }
-        }
-        else if (ctx.selectStatement() != null) {
+        } else if (ctx.selectStatement() != null) {
             // Insert from subquery
             List<ExpressionNode> subquery = new ArrayList<>();
             subquery.add((ExpressionNode) visit(ctx.selectStatement()));
@@ -230,19 +232,19 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         // -- CASE --
         if (ctx.CASE() != null) {
             List<CaseExpressionNode.WhenClause> whenClauses = new ArrayList<>();
-            
+
             for (SQLParser.WhenClauseContext wctx : ctx.whenClause()) {
                 ExpressionNode cond = (ExpressionNode) visit(wctx.expression(0));
                 ExpressionNode res = (ExpressionNode) visit(wctx.expression(1));
-                
+
                 whenClauses.add(new CaseExpressionNode.WhenClause(cond, res));
             }
-            
+
             ExpressionNode elseExpr = null;
             if (ctx.ELSE() != null) {
                 elseExpr = (ExpressionNode) visit(ctx.expression(ctx.expression().size() - 1));
             }
-            
+
             return new CaseExpressionNode(whenClauses, elseExpr);
         }
 
@@ -254,8 +256,8 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         // -- IS NULL / IS NOT NULL --
         if (ctx.IS() != null && ctx.NULL() != null) {
             boolean not = ctx.NOT() != null;
-            return new UnaryExpressionNode(not ? "IS NOT NULL" : "IS NULL", 
-                (ExpressionNode) visit(ctx.expression(0)));
+            return new UnaryExpressionNode(not ? "IS NOT NULL" : "IS NULL",
+                    (ExpressionNode) visit(ctx.expression(0)));
         }
 
         // -- BETWEEN / NOT BETWEEN --
@@ -328,24 +330,22 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         }
 
         int count = ctx.getChildCount();
-        
+
         // -- Binary comparison operators: expr op expr --
         if (count == 3 && ctx.comparisonOperator() != null) {
             return new BinaryExpressionNode(
                     (ExpressionNode) visit(ctx.expression(0)),
                     ctx.comparisonOperator().getText(),
-                    (ExpressionNode) visit(ctx.expression(1))
-            );
+                    (ExpressionNode) visit(ctx.expression(1)));
         }
 
         // -- Arithmetic operators +, -, *, /, % --
-        if (count == 3 && (ctx.PLUS() != null || ctx.MINUS_OP() != null || 
-                        ctx.STAR() != null || ctx.DIV() != null || ctx.MOD() != null)) {
+        if (count == 3 && (ctx.PLUS() != null || ctx.MINUS_OP() != null ||
+                ctx.STAR() != null || ctx.DIV() != null || ctx.MOD() != null)) {
             return new BinaryExpressionNode(
                     (ExpressionNode) visit(ctx.expression(0)),
                     ctx.getChild(1).getText(),
-                    (ExpressionNode) visit(ctx.expression(1))
-            );
+                    (ExpressionNode) visit(ctx.expression(1)));
         }
 
         // -- AND / OR logical ops --
@@ -353,8 +353,7 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return new BinaryExpressionNode(
                     (ExpressionNode) visit(ctx.expression(0)),
                     ctx.getChild(1).getText(),
-                    (ExpressionNode) visit(ctx.expression(1))
-            );
+                    (ExpressionNode) visit(ctx.expression(1)));
         }
 
         // -- Fallback to children --
@@ -423,7 +422,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
 
         return new FunctionCallNode(functionName, args);
     }
-
 
     // ================ Default fallback ================
 

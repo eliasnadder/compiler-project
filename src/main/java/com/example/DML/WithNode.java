@@ -6,7 +6,7 @@ import java.util.List;
 public class WithNode extends ASTNode {
 
     private boolean recursive;
-    private List<CTETable> cteTables; 
+    private List<CTETable> cteTables;
 
     public static class CTETable {
         private String name;
@@ -17,8 +17,13 @@ public class WithNode extends ASTNode {
             this.subquery = subquery;
         }
 
-        public String getName() { return name; }
-        public DMLStatementsNode getSubquery() { return subquery; }
+        public String getName() {
+            return name;
+        }
+
+        public DMLStatementsNode getSubquery() {
+            return subquery;
+        }
     }
 
     public WithNode(boolean recursive, List<CTETable> cteTables) {
@@ -28,8 +33,13 @@ public class WithNode extends ASTNode {
         cteTables.forEach(cte -> addChild(cte.getSubquery()));
     }
 
-    public boolean isRecursive() { return recursive; }
-    public List<CTETable> getCteTables() { return cteTables; }
+    public boolean isRecursive() {
+        return recursive;
+    }
+
+    public List<CTETable> getCteTables() {
+        return cteTables;
+    }
 
     @Override
     public String getNodeType() {

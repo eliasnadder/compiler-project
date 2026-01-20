@@ -9,11 +9,10 @@ public class InsertNode extends DMLStatementsNode {
     private List<String> columns;
     private List<List<ExpressionNode>> values;
 
-   public InsertNode(
-        String tableName, 
-        List<String> columns, 
-        List<List<ExpressionNode>> values
-    ) {
+    public InsertNode(
+            String tableName,
+            List<String> columns,
+            List<List<ExpressionNode>> values) {
         this.tableName = tableName;
         this.columns = columns;
         this.values = values;
@@ -23,10 +22,20 @@ public class InsertNode extends DMLStatementsNode {
     }
 
     @Override
-    public String getNodeType() { return "INSERT"; }
+    public String getNodeType() {
+        return "INSERT";
+    }
 
-    public String getTableName() { return tableName; }
-    public List<String> getColumns() { return columns; }
-    public List<List<ExpressionNode>> getValues() { return values; }
-    
+    public String getTableName() {
+        return tableName;
+    }
+
+    public List<String> getColumns() {
+        return columns;
+    }
+
+    public List<List<ExpressionNode>> getValues() {
+        return values;
+    }
+
 }

@@ -1,13 +1,19 @@
 package com.example.Expressions;
 
-public class ColumnNode extends ExpressionNode{
-    
+public class ColumnNode extends ExpressionNode {
+
     private String columnName;
 
-    public ColumnNode(String columnName) { this.columnName = columnName; }
+    public ColumnNode(String columnName) {
+        this.columnName = columnName;
+    }
 
-    public String getColumnName() { return columnName; }
+    public String getColumnName() {
+        return columnName;
+    }
 
     @Override
-    public String getNodeType() { return "COLUMN(" + columnName + ")"; }
+    public String getNodeType() {
+        return "COLUMN(" + columnName + ")";
+    }
 }

@@ -16,8 +16,13 @@ public class CaseExpressionNode extends ExpressionNode {
             this.result = result;
         }
 
-        public ExpressionNode getCondition() { return condition; }
-        public ExpressionNode getResult() { return result; }
+        public ExpressionNode getCondition() {
+            return condition;
+        }
+
+        public ExpressionNode getResult() {
+            return result;
+        }
     }
 
     public CaseExpressionNode(List<WhenClause> whenClauses, ExpressionNode elseExpression) {
@@ -28,12 +33,20 @@ public class CaseExpressionNode extends ExpressionNode {
             addChild(wc.getCondition());
             addChild(wc.getResult());
         });
-        if (elseExpression != null) addChild(elseExpression);
+        if (elseExpression != null)
+            addChild(elseExpression);
     }
 
-    public List<WhenClause> getWhenClauses() { return whenClauses; }
-    public ExpressionNode getElseExpression() { return elseExpression; }
+    public List<WhenClause> getWhenClauses() {
+        return whenClauses;
+    }
+
+    public ExpressionNode getElseExpression() {
+        return elseExpression;
+    }
 
     @Override
-    public String getNodeType() { return "CASE"; }
+    public String getNodeType() {
+        return "CASE";
+    }
 }

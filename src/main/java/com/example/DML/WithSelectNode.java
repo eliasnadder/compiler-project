@@ -14,8 +14,15 @@ public class WithSelectNode extends DMLStatementsNode {
     }
 
     @Override
-    public String getNodeType() { return "WITH_SELECT"; }
+    public String getNodeType() {
+        return "WITH_SELECT";
+    }
 
-    public WithNode getWithNode() { return withNode; }
-    public SelectNode getSelectNode() { return selectNode; }
+    public WithNode getWithNode() {
+        return withNode;
+    }
+
+    public SelectNode getSelectNode() {
+        return selectNode;
+    }
 }
