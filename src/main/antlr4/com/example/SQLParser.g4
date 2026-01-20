@@ -449,6 +449,8 @@ columnConstraint
     | NOT NULL          //! Added
     | NULL              //! Added
     | AUTO_INCREMENT    //! Added
+    | IDENTITY                           //! أضف هذا السطر
+    | IDENTITY LPAREN INT_LITERAL COMMA INT_LITERAL RPAREN  //! أضف هذا السطر أيضاً لدعم IDENTITY(1,1)
     ;
 
 createView
