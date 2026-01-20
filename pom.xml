@@ -18,7 +18,14 @@
             <artifactId>antlr4-runtime</artifactId>
             <version>4.13.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.4.1</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -41,7 +48,7 @@
                             <goal>antlr4</goal>
                         </goals>
                         <configuration>
-                            <visitor>true</visitor>   
+                            <visitor>true</visitor>
                             <sourceDirectory>src/main/antlr4</sourceDirectory>
                             <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>
                             <packageName>com.example</packageName>

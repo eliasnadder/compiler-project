@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.tree.*;
 import com.example.SQLLexer;
 import com.example.SQLParser;
 import com.example.Tests.GUI.DrawingParseTree;
+import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.*;
 import java.nio.file.*;
@@ -13,14 +14,10 @@ import java.io.*;
 import java.awt.*;
 
 /**
- * فئة اختبار الـ Parser مع طباعة Parse Tree
- * تعرض النتائج في terminal وفي واجهة رسومية
+ * فئة اختبار الـ Parser مع واجهة محسّنة
  */
 public class TestParserGUI {
 
-    /**
-     * طباعة الـ Parse Tree في terminal
-     */
     private static void printParseTree(ParseTree tree, SQLParser parser, String prefix, boolean isTail,
             StringBuilder sb) {
         if (tree == null)
@@ -54,6 +51,11 @@ public class TestParserGUI {
     }
 
     public static void main(String[] args) throws Exception {
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (UnsupportedLookAndFeelException e) {
+            e.printStackTrace();
+        }
 
         System.out.println("========================================");
         System.out.println("   SQL Parser - Parse Tree Generator");
@@ -114,10 +116,10 @@ public class TestParserGUI {
     }
 
     /**
-     * إنشاء وعرض الواجهة الرسومية
+     * إنشاء وعرض الواجهة الرسومية المحسّنة
      */
     private static void createAndShowGUI(ParseTree tree, SQLParser parser) {
-        JFrame frame = new JFrame("SQL Parser - Parse Tree Viewer");
+        JFrame frame = new JFrame("SQL Parser - Parse Tree Visualizer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // إنشاء panel الرسم
@@ -128,99 +130,247 @@ public class TestParserGUI {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        // إضافة معلومات في الأعلى
+        // إنشاء شريط الأدوات العلوي
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(new Color(240, 240, 240));
-        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        topPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        JLabel titleLabel = new JLabel("Parse Tree Visualization", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        titleLabel.setForeground(new Color(25, 25, 112));
-
+        // العنوان
         String rootName = tree instanceof ParserRuleContext
                 ? parser.getRuleNames()[((ParserRuleContext) tree).getRuleIndex()]
                 : "Terminal";
 
+        JLabel titleLabel = new JLabel("🌲 Parse Tree Visualization", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setForeground(new Color(25, 25, 112));
+
         JLabel infoLabel = new JLabel(
-                "Root: " + rootName + " | Children: " + tree.getChildCount(),
+                String.format("Root: %s | Total Nodes: %d | Depth: %d",
+                        rootName,
+                        countNodes(tree),
+                        calculateDepth(tree)),
                 SwingConstants.CENTER);
-        infoLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         infoLabel.setForeground(new Color(70, 70, 70));
 
-        topPanel.add(titleLabel, BorderLayout.NORTH);
-        topPanel.add(infoLabel, BorderLayout.SOUTH);
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setBackground(new Color(240, 240, 240));
+        titlePanel.add(titleLabel, BorderLayout.NORTH);
+        titlePanel.add(infoLabel, BorderLayout.SOUTH);
 
-        // إضافة أزرار تحكم
-        JPanel controlPanel = new JPanel(new FlowLayout());
-        controlPanel.setBackground(new Color(240, 240, 240));
+        // شريط الأدوات
+        JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        toolbarPanel.setBackground(new Color(240, 240, 240));
 
-        JButton exportButton = new JButton("💾 Export to File");
-        exportButton.addActionListener(e -> {
-            try {
-                StringBuilder sb = new StringBuilder();
-                printParseTree(tree, parser, "", true, sb);
-                Files.writeString(Paths.get("ParseTree_Export.txt"), sb.toString());
-                JOptionPane.showMessageDialog(frame,
-                        "Parse Tree exported successfully to ParseTree_Export.txt!",
-                        "Export Success",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(frame,
-                        "Error exporting Parse Tree: " + ex.getMessage(),
-                        "Export Error",
-                        JOptionPane.ERROR_MESSAGE);
+        // أزرار التحكم بالـ Zoom
+        JButton zoomInBtn = createStyledButton("🔍+ Zoom In", new Color(59, 130, 246));
+        zoomInBtn.addActionListener(e -> treePanel.zoomIn());
+
+        JButton zoomOutBtn = createStyledButton("🔍- Zoom Out", new Color(59, 130, 246));
+        zoomOutBtn.addActionListener(e -> treePanel.zoomOut());
+
+        JButton resetViewBtn = createStyledButton("🎯 Reset View", new Color(99, 102, 241));
+        resetViewBtn.addActionListener(e -> treePanel.resetView());
+
+        JButton fitWindowBtn = createStyledButton("📐 Fit to Window", new Color(139, 92, 246));
+        fitWindowBtn.addActionListener(e -> treePanel.fitToWindow());
+
+        // أزرار التصدير
+        JButton exportPngBtn = createStyledButton("📸 Export PNG", new Color(16, 185, 129));
+        exportPngBtn.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Save Parse Tree as PNG");
+            fileChooser.setSelectedFile(new File("ParseTree.png"));
+
+            if (fileChooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    File file = fileChooser.getSelectedFile();
+                    if (!file.getName().toLowerCase().endsWith(".png")) {
+                        file = new File(file.getAbsolutePath() + ".png");
+                    }
+                    treePanel.exportToPNG(file);
+                    JOptionPane.showMessageDialog(frame,
+                            "✅ Parse Tree exported successfully to:\n" + file.getAbsolutePath(),
+                            "Export Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "❌ Error exporting Parse Tree:\n" + ex.getMessage(),
+                            "Export Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
-        JButton printButton = new JButton("🖨️ Print to Console");
-        printButton.addActionListener(e -> {
+        JButton exportSvgBtn = createStyledButton("🎨 Export SVG", new Color(16, 185, 129));
+        exportSvgBtn.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Save Parse Tree as SVG");
+            fileChooser.setSelectedFile(new File("ParseTree.svg"));
+
+            if (fileChooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    File file = fileChooser.getSelectedFile();
+                    if (!file.getName().toLowerCase().endsWith(".svg")) {
+                        file = new File(file.getAbsolutePath() + ".svg");
+                    }
+                    treePanel.exportToSVG(file);
+                    JOptionPane.showMessageDialog(frame,
+                            "✅ Parse Tree exported successfully to:\n" + file.getAbsolutePath(),
+                            "Export Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "❌ Error exporting Parse Tree:\n" + ex.getMessage(),
+                            "Export Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        JButton exportTextBtn = createStyledButton("📄 Export Text", new Color(245, 158, 11));
+        exportTextBtn.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Save Parse Tree as Text");
+            fileChooser.setSelectedFile(new File("ParseTree_Export.txt"));
+
+            if (fileChooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    File file = fileChooser.getSelectedFile();
+                    if (!file.getName().toLowerCase().endsWith(".txt")) {
+                        file = new File(file.getAbsolutePath() + ".txt");
+                    }
+                    StringBuilder sb = new StringBuilder();
+                    printParseTree(tree, parser, "", true, sb);
+                    Files.writeString(file.toPath(), sb.toString());
+                    JOptionPane.showMessageDialog(frame,
+                            "✅ Parse Tree exported successfully to:\n" + file.getAbsolutePath(),
+                            "Export Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "❌ Error exporting Parse Tree:\n" + ex.getMessage(),
+                            "Export Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        JButton printBtn = createStyledButton("🖨️ Print Console", new Color(139, 92, 246));
+        printBtn.addActionListener(e -> {
             System.out.println("\n========== Parse Tree Structure ==========");
             StringBuilder sb = new StringBuilder();
             printParseTree(tree, parser, "", true, sb);
             System.out.println(sb.toString());
             System.out.println("==========================================\n");
             JOptionPane.showMessageDialog(frame,
-                    "Parse Tree printed to console!",
+                    "✅ Parse Tree printed to console!",
                     "Print Success",
                     JOptionPane.INFORMATION_MESSAGE);
         });
 
         // Legend للألوان
-        JPanel legendPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel legendPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
         legendPanel.setBackground(new Color(240, 240, 240));
 
-        JLabel legendLabel = new JLabel("Legend: ");
-        legendLabel.setFont(new Font("Arial", Font.BOLD, 11));
+        JLabel legendLabel = new JLabel("Legend:");
+        legendLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         JLabel ruleLabel = new JLabel("■ Parser Rules");
-        ruleLabel.setForeground(new Color(70, 130, 180));
-        ruleLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        ruleLabel.setForeground(new Color(59, 130, 246));
+        ruleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         JLabel terminalLabel = new JLabel("■ Terminals");
-        terminalLabel.setForeground(new Color(34, 139, 34));
-        terminalLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        terminalLabel.setForeground(new Color(16, 185, 129));
+        terminalLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         legendPanel.add(legendLabel);
         legendPanel.add(ruleLabel);
-        legendPanel.add(Box.createHorizontalStrut(15));
         legendPanel.add(terminalLabel);
 
-        controlPanel.add(exportButton);
-        controlPanel.add(printButton);
-        controlPanel.add(Box.createHorizontalStrut(20));
-        controlPanel.add(legendPanel);
+        // إضافة الأزرار
+        toolbarPanel.add(zoomInBtn);
+        toolbarPanel.add(zoomOutBtn);
+        toolbarPanel.add(resetViewBtn);
+        toolbarPanel.add(fitWindowBtn);
+        toolbarPanel.add(new JSeparator(SwingConstants.VERTICAL));
+        toolbarPanel.add(exportPngBtn);
+        toolbarPanel.add(exportSvgBtn);
+        toolbarPanel.add(exportTextBtn);
+        toolbarPanel.add(new JSeparator(SwingConstants.VERTICAL));
+        toolbarPanel.add(printBtn);
+        toolbarPanel.add(new JSeparator(SwingConstants.VERTICAL));
+        toolbarPanel.add(legendPanel);
 
-        topPanel.add(controlPanel, BorderLayout.CENTER);
+        topPanel.add(titlePanel, BorderLayout.NORTH);
+        topPanel.add(toolbarPanel, BorderLayout.CENTER);
 
-        // إضافة المكونات إلى النافذة
+        // شريط المساعدة السفلي
+        JPanel helpPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        helpPanel.setBackground(new Color(250, 250, 250));
+        helpPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel helpLabel = new JLabel(
+                "💡 Tips: Use mouse wheel to zoom | Drag to pan | Click 📐 Fit to Window to see full tree");
+        helpLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        helpLabel.setForeground(new Color(100, 100, 100));
+        helpPanel.add(helpLabel);
+
+        // تجميع المكونات
         frame.add(topPanel, BorderLayout.NORTH);
         frame.add(scrollPane, BorderLayout.CENTER);
+        frame.add(helpPanel, BorderLayout.SOUTH);
 
-        // ضبط حجم النافذة
-        frame.setSize(1400, 900);
+        // ضبط النافذة
+        frame.setSize(1500, 950);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
         System.out.println("✅ GUI window opened successfully!");
+    }
+
+    private static JButton createStyledButton(String text, Color color) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setBackground(color);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setOpaque(true);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setPreferredSize(new Dimension(150, 35));
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(color.brighter());
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(color);
+            }
+        });
+
+        return button;
+    }
+
+    private static int countNodes(ParseTree node) {
+        if (node == null)
+            return 0;
+        int count = 1;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            count += countNodes(node.getChild(i));
+        }
+        return count;
+    }
+
+    private static int calculateDepth(ParseTree node) {
+        if (node == null || node.getChildCount() == 0) {
+            return 1;
+        }
+        int maxDepth = 0;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            maxDepth = Math.max(maxDepth, calculateDepth(node.getChild(i)));
+        }
+        return maxDepth + 1;
     }
 }
