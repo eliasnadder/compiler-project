@@ -20,6 +20,11 @@ statementList
     ;
 
 statement
+    : withClause? coreStatement
+    ;
+
+// Core statements that can be preceded by WITH
+coreStatement
     : selectStatement
     | insertStatement
     | updateStatement
@@ -37,10 +42,22 @@ statement
     | truncateStatement
     ;
 
+// __________________ WITH (CTE) ___________________
 
-// Bshr DML Statements 
+withClause
+    : WITH recursiveClause? cteTableExpression (COMMA cteTableExpression)*
+    ;
 
-// ---------------------- SELECT ---------------------------
+recursiveClause
+    : RECURSIVE
+    ;
+
+cteTableExpression
+    : IDENTIFIER AS LPAREN selectStatement RPAREN
+    ;
+
+// ________________________ SELECT ---------------------------
+
 selectStatement
     : SELECT selectList
       fromClause?
@@ -48,6 +65,7 @@ selectStatement
       groupByClause?
       havingClause?
       orderByClause?
+      returningClause?
     ;
 
 selectList
@@ -59,6 +77,7 @@ selectItem
     : expression (AS? IDENTIFIER)?
     ;
 
+// From clause with aliasing and joins
 fromClause
     : FROM tableSource
     ;
@@ -73,7 +92,8 @@ tableFactor
     ;
 
 joinClause
-    : joinType? JOIN tableFactor ON expression
+    : joinType? JOIN tableFactor (USING LPAREN columnList RPAREN | ON expression)?
+    | NATURAL joinType? JOIN tableFactor
     ;
 
 joinType
@@ -83,6 +103,8 @@ joinType
     | FULL OUTER?
     | CROSS
     ;
+
+// ________________________ WHERE, GROUP BY, HAVING, ORDER BY
 
 whereClause
     : WHERE expression
@@ -100,36 +122,33 @@ orderByClause
     : ORDER BY orderExpression (COMMA orderExpression)*
     ;
 
-//___________________________________________________________________________________________
+// Returning clause for DML
+returningClause
+    : RETURNING expressionList
+    ;
 
-//Elias
+// ________________________ DML Statements
 
-//  INSERT 
 insertStatement
     : INSERT INTO qualifiedName (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)?
       (VALUES LPAREN expression (COMMA expression)* RPAREN (COMMA LPAREN expression (COMMA expression)* RPAREN)*
       | selectStatement)
+      returningClause?
     ;
 
-//  UPDATE 
 updateStatement
     : UPDATE qualifiedName
       SET updateAssignment (COMMA updateAssignment)*
       whereClause?
+      returningClause?
     ;
 
-updateAssignment
-    : IDENTIFIER EQ expression
-    | IDENTIFIER (PLUS_EQ | MINUS_EQ | MULT_EQ | DIV_EQ | MOD_EQ) expression
-    ;
-
-//  DELETE 
 deleteStatement
     : DELETE FROM qualifiedName
       whereClause?
+      returningClause?
     ;
 
-//  MERGE 
 mergeStatement
     : MERGE INTO qualifiedName (AS? IDENTIFIER)?
       USING tableSource
@@ -149,8 +168,14 @@ mergeAction
       VALUES LPAREN expression (COMMA expression)* RPAREN
     ;
 
+// Update assignments
+updateAssignment
+    : IDENTIFIER EQ expression
+    | IDENTIFIER (PLUS_EQ | MINUS_EQ | MULT_EQ | DIV_EQ | MOD_EQ) expression
+    ;
 
-//  Cursor Statements 
+// ________________________ Cursor Statements 
+
 cursorStatement
     : DECLARE IDENTIFIER CURSOR FOR selectStatement
     | OPEN IDENTIFIER
@@ -163,7 +188,7 @@ identifierList
     : IDENTIFIER (COMMA IDENTIFIER)*
     ;
 
-//  Control Flow 
+// ________________________ Control Flow 
 
 controlFlowStatement
     : caseExpression
@@ -202,12 +227,7 @@ continueStatement
     : CONTINUE SEMICOLON?
     ;
 
-    
-//________________________________________________________________________________________________________________________________
-
-// Aya 
-
-// Expressions
+// ________________________ Expressions (with CASE, CAST, improved)
 
 expression
     : LPAREN expression RPAREN                                                // ()
@@ -217,16 +237,19 @@ expression
     | expression comparisonOperator expression                                // < > <= >= = !=
     | expression AND expression                                               // AND
     | expression OR expression                                                // OR
-    | expression IS NOT? NULL                                                 // Is Null  - IS NOT NULL
+    | expression IS NOT? NULL                                                 // IS NULL  - IS NOT NULL
     | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN     // NOT IN () - IN ()
     | expression NOT? BETWEEN expression AND expression                       // BETWEEN - NOT BETWEEN
     | expression NOT? LIKE expression (ESCAPE expression)?                    // LIKE - NOT LIKE ESCAPE
     | EXISTS LPAREN selectStatement RPAREN                                    // EXISTS
+    | CASE whenClause+ (ELSE expression)? END                                // CASE expression
+    | CAST LPAREN expression AS datatype RPAREN                              // CAST
     | functionCall                                                            // SQL function
     | qualifiedName                                                           // column
     | literal                                                                 // static values
     ;
 
+// List of expressions
 expressionList
     : expression (COMMA expression)*
     ;
@@ -243,7 +266,7 @@ orderExpression
     : expression (ASC | DESC)?
     ;
 
-// __________________functions__
+// ________________________ Functions
 
 functionCall
     : systemFunction
@@ -279,8 +302,7 @@ windowSpec
     (ORDER BY orderExpression (COMMA orderExpression)*)?
     ;
 
-
-// ____________Literals____ 
+// ________________________ Literals
 
 literal
     : STRING_LITERAL
@@ -292,7 +314,7 @@ literal
     | NULL
     ;
 
-// __________________Security Statements_________
+// ________________________ Security Statements
 
 grantStatement
     : GRANT IDENTIFIER ON qualifiedName TO IDENTIFIER
@@ -306,7 +328,7 @@ denyStatement
     : DENY IDENTIFIER ON qualifiedName TO IDENTIFIER
     ;
 
-//  ____________Transaction__________
+// ________________________ Transaction Statements
 
 transactionStatement
     : BEGIN TRANSACTION?
@@ -315,12 +337,17 @@ transactionStatement
     | SAVEPOINT IDENTIFIER
     ;
 
-//  ___________Blocks_____ 
+// ________________________ Blocks
 
 block
     : LBRACE statementList RBRACE
     | singleStatement
     ;
+
+// ________________________ DDL Statements (As before)
+// ... (Same as in your original grammar)
+
+
 
 
 //___________________________________________________________________________________________

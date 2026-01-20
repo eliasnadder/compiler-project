@@ -42,7 +42,7 @@ public abstract class ASTNode {
         }
     }
 
-    // احضار اﻷبناء
+    // احضار الأبناء
     public List<ASTNode> getChildren() {
         return children;
     }
@@ -115,5 +115,16 @@ public abstract class ASTNode {
 
         sb.append(indentStr).append("}");
         return sb.toString();
+    }
+
+    public void prettyPrint() {
+        prettyPrint("");
+    }
+
+    protected void prettyPrint(String indent) {
+        System.out.println(indent + getNodeType());
+        for (ASTNode child : children) {
+            child.prettyPrint(indent + "  ");
+        }
     }
 }

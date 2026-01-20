@@ -6,7 +6,7 @@ import java.nio.file.*;
 
 public class TestLexer {
     public static void main(String[] args) throws Exception {
-        String inputFilePath = "testing.sql";
+        String inputFilePath = "train.sql";
         String outputFilePath = "output.txt";
 
         String sqlInput;
