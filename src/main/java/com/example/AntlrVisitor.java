@@ -835,8 +835,10 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             List<ExpressionNode> list;
 
             if (ctx.selectStatement() != null) {
+                // ✅ الإصلاح: غلّف الـ subquery في SubqueryExpressionNode
+                ASTNode subquery = visit(ctx.selectStatement());
                 list = new ArrayList<>();
-                list.add((ExpressionNode) visit(ctx.selectStatement()));
+                list.add(new SubqueryExpressionNode(subquery));
             } else if (ctx.expressionList() != null) {
                 list = new ArrayList<>();
                 for (SQLParser.ExpressionContext e : ctx.expressionList().expression()) {
@@ -871,10 +873,12 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return visit(ctx.functionCall());
         }
 
-        // Parentheses - Subquery
+        // Parentheses - Subquery or Expression
         if (ctx.LPAREN() != null && ctx.RPAREN() != null) {
             if (ctx.selectStatement() != null) {
-                return visit(ctx.selectStatement());
+                // ✅ الإصلاح: غلّف الـ subquery
+                ASTNode subquery = visit(ctx.selectStatement());
+                return new SubqueryExpressionNode(subquery);
             }
             if (ctx.expression().size() == 1) {
                 return visit(ctx.expression(0));
@@ -920,7 +924,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
 
         return visitChildren(ctx);
     }
-
     // ================ Literals ================
 
     @Override
