@@ -1,7 +1,7 @@
 package com.example.DDL.Create;
 
 public class BinaryConstraintNode extends ColumnConstraintNode {
-     public BinaryConstraintNode(int lineNumber, int columnNumber) {
+    public BinaryConstraintNode(int lineNumber, int columnNumber) {
         super(lineNumber, columnNumber);
     }
 

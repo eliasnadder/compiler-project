@@ -2,16 +2,19 @@ package com.example.DDL.Alter;
 
 public class DropConstraintNode extends AlterTableActionNode {
     private final String constraintName;
-    public DropConstraintNode(String constraintName, int lineNumber,int columnNumber ){
+
+    public DropConstraintNode(String constraintName, int lineNumber, int columnNumber) {
         super(lineNumber, columnNumber);
-        this.constraintName=constraintName;
+        this.constraintName = constraintName;
 
     }
-    public String getConstraintName(){
+
+    public String getConstraintName() {
         return constraintName;
     }
+
     @Override
-    public String getNodeType(){
+    public String getNodeType() {
         return "DROP_CONSTRAINT (" + constraintName + ")";
     }
 

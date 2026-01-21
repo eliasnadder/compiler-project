@@ -6,8 +6,8 @@ public abstract class AlterTableActionNode extends ASTNode {
     public AlterTableActionNode(int lineNumber, int columnNumber) {
         super(lineNumber, columnNumber);
     }
-    @Override
-    public abstract String getNodeType();           
 
+    @Override
+    public abstract String getNodeType();
 
 }

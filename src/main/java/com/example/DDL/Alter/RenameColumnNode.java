@@ -1,21 +1,23 @@
 package com.example.DDL.Alter;
 
-public class RenameColumnNode extends AlterTableActionNode{
+public class RenameColumnNode extends AlterTableActionNode {
     private final String oldName;
     private final String newName;
-    public RenameColumnNode(String oldName,String newName,int lineNumber,int columnNumber){
+
+    public RenameColumnNode(String oldName, String newName, int lineNumber, int columnNumber) {
         super(lineNumber, columnNumber);
-        this.oldName=oldName;
-        this.newName=newName;
+        this.oldName = oldName;
+        this.newName = newName;
     }
+
     // public String getOldName(){
-    //     return oldName;
+    // return oldName;
     // }
     // public String getNewName(){
-    //     return newName;
+    // return newName;
     // }
     @Override
-    public String getNodeType(){
+    public String getNodeType() {
         return "RENAME_COLUMN (" + oldName + " -> " + newName + ")";
     }
 

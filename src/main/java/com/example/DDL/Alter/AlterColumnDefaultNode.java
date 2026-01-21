@@ -13,6 +13,7 @@ public class AlterColumnDefaultNode extends AlterTableActionNode {
     public String getColumnName() {
         return columnName;
     }
+
     public String getDefaultValue() {
         return defaultValue;
     }
@@ -22,5 +23,4 @@ public class AlterColumnDefaultNode extends AlterTableActionNode {
         return "ALTER_COLUMN_DEFAULT";
     }
 
-   
 }

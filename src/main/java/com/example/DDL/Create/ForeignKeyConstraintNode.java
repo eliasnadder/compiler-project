@@ -3,10 +3,11 @@ package com.example.DDL.Create;
 public class ForeignKeyConstraintNode extends ColumnConstraintNode {
     private final String referencedTable;
     private final String referencedColumn;
+
     public ForeignKeyConstraintNode(String referencedTable,
-                                    String referencedColumn,
-                                    int lineNumber,
-                                    int columnNumber) {
+            String referencedColumn,
+            int lineNumber,
+            int columnNumber) {
         super(lineNumber, columnNumber);
         this.referencedTable = referencedTable;
         this.referencedColumn = referencedColumn;

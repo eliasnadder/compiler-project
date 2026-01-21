@@ -9,11 +9,13 @@ public class PrimarykeyTableConstraintNode extends TableConstraintNode {
     public PrimarykeyTableConstraintNode(int lineNumber, int columnNumber) {
         super(lineNumber, columnNumber);
     }
+
     public void addColumn(String columnName) {
         if (columnName != null) {
             columns.add(columnName);
         }
     }
+
     @Override
     public String getNodeType() {
         return "PRIMARY_KEY_TABLE_CONSTRAINT";

@@ -4,15 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DropViewNode extends DropStatementNode {
-    private final List<String> viewNames =new ArrayList<>();
+    private final List<String> viewNames = new ArrayList<>();
     private final boolean ifExists;
 
     public DropViewNode(String viewName, int lineNumber, int columnNumber, boolean ifExists) {
         super(lineNumber, columnNumber);
         this.ifExists = ifExists;
     }
-    public void addViewName(String viewName){
-        if (viewName!=null){
+
+    public void addViewName(String viewName) {
+        if (viewName != null) {
             viewNames.add(viewName);
 
         }
