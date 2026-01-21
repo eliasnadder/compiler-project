@@ -78,6 +78,9 @@ BODY: B O D Y;
 ADD: A D D;
 IF_EXISTS: I F '_' E X I S T S;
 IF_NOT_EXISTS: I F '_' N O T '_' E X I S T S;
+AUTO_INCREMENT: A U T O '_' I N C R E M E N T;	//!Added
+CONTINUE: C O N T I N U E;						//!Added
+SET: S E T;										//!Added
 
 // ===================== Access Control (DCL) =====================
 GRANT: G R A N T;
@@ -93,7 +96,6 @@ COMMIT: C O M M I T;
 ROLLBACK: R O L L B A C K;
 TRANSACTION: T R A N S A C T I O N;
 SAVEPOINT: S A V E P O I N T;
-SET: S E T;
 LOCK: L O C K;
 WAIT: W A I T;
 NOWAIT: N O W A I T;
@@ -126,6 +128,7 @@ BY: B Y;
 HAVING: H A V I N G;
 ORDER: O R D E R;
 ASC: A S C;
+DESC: D E S C;
 TOP: T O P;
 VALUES: V A L U E S;
 INTO: I N T O;
@@ -154,8 +157,14 @@ FOLLOWING: F O L L O W I N G;
 CURRENT: C U R R E N T;
 ROW: R O W;
 FILTER: F I L T E R;
-WITHIN: W I T H I N; 
-MATCHED: M A T C H E D; //! Updated 
+WITHIN: W I T H I N;				//!Added
+MATCHED: M A T C H E D;				//!Added
+RETURNING: R E T U R N I N G;		//!Added
+OPEN: O P E N;						//!Added
+CLOSE: C L O S E;					//!Added
+DEALLOCATE: D E A L L O C A T E;	//!Added
+CURSOR: C U R S O R;				//!Added
+FOR: F O R;							//!Added
 
 // ===================== Logical Operators =====================
 AND: A N D;
@@ -178,7 +187,7 @@ FIRST: F I R S T;
 LAST: L A S T;
 ESCAPE: E S C A P E;
 
-TO: T O; //! Updated
+TO: T O; //! Added
 
 NOT_IN: N O T '_' I N;
 NOT_EXISTS: N O T '_' E X I S T S;
@@ -195,7 +204,6 @@ IF: I F;
 WHILE: W H I L E;
 RETURN: R E T U R N;
 BREAK: B R E A K;
-CONTINUE: C O N T I N U E;
 GOTO: G O T O;
 DECLARE: D E C L A R E;
 EXEC: E X E C;
@@ -249,7 +257,6 @@ NTH_VALUE: N T H '_' V A L U E;
 // ===================== Auxiliary =====================
 SHOW: S H O W;
 DESCRIBE: D E S C R I B E;
-DESC: D E S C;
 EXPLAIN: E X P L A I N;
 ANALYZE: A N A L Y Z E;
 USE: U S E;
@@ -359,11 +366,12 @@ BIT_NOT: '~';
 LSHIFT: '<<';
 RSHIFT: '>>';
 
-PLUS_EQ  : '+=';
-MINUS_EQ : '-=';
-MULT_EQ  : '*=';
-DIV_EQ   : '/=';
-MOD_EQ   : '%=';
+//! Added
+PLUS_EQ: '+=';
+MINUS_EQ: '-=';
+MULT_EQ: '*=';
+DIV_EQ: '/=';
+MOD_EQ: '%=';
 
 COMMA: ',';
 SEMICOLON: ';';
@@ -378,14 +386,15 @@ RBRACE: '}';
 // ===================== Comments & Whitespace =====================
 WS: [ \t\r\n]+ -> skip;
 LINE_COMMENT: '--' ~[\r\n]* -> skip;
-// BLOCK_COMMENT: '/*' .*? '*/' -> skip;
-//! Updated to support nested block comments
-BLOCK_COMMENT_START: '/*' -> pushMode(BLOCK_COMMENT_MODE), skip;
+HASH_COMMENT: '#' ~[\r\n]* -> skip;
+
+// Block comments with nesting support
+BLOCK_COMMENT_START:
+	'/*' -> pushMode(BLOCK_COMMENT_MODE), skip;
 
 mode BLOCK_COMMENT_MODE;
 
-BLOCK_COMMENT_NESTED: '/*' -> pushMode(BLOCK_COMMENT_MODE), skip;
+BLOCK_COMMENT_NESTED:
+	'/*' -> pushMode(BLOCK_COMMENT_MODE), skip;
 BLOCK_COMMENT_END: '*/' -> popMode, skip;
 BLOCK_COMMENT_CONTENT: . -> skip;
-
-HASH_COMMENT: '#' ~[\r\n]* -> skip; 

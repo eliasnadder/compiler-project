@@ -20,6 +20,11 @@ statementList
     ;
 
 statement
+    : withClause? coreStatement
+    ;
+
+// Core statements that can be preceded by WITH
+coreStatement
     : selectStatement
     | insertStatement
     | updateStatement
@@ -35,12 +40,26 @@ statement
     | alterStatement
     | dropStatement
     | truncateStatement
+    | useStatement          //! ADDED
+    | goStatement           //! ADDED
     ;
 
+// __________________ WITH (CTE) ___________________
 
-// Bshr DML Statements 
+withClause
+    : WITH recursiveClause? cteTableExpression (COMMA cteTableExpression)*
+    ;
 
-// ---------------------- SELECT ---------------------------
+recursiveClause
+    : RECURSIVE
+    ;
+
+cteTableExpression
+    : IDENTIFIER AS LPAREN selectStatement RPAREN
+    ;
+
+// ________________________ SELECT ---------------------------
+
 selectStatement
     : SELECT selectList
       fromClause?
@@ -48,6 +67,8 @@ selectStatement
       groupByClause?
       havingClause?
       orderByClause?
+      limitClause?         //! ADDED
+      returningClause?
     ;
 
 selectList
@@ -56,9 +77,16 @@ selectList
     ;
 
 selectItem
-    : expression (AS? IDENTIFIER)?
+    : expression (AS? alias)?    //! CHANGED to support string aliases
     ;
 
+//! Alias can be IDENTIFIER or STRING_LITERAL
+alias
+    : IDENTIFIER
+    | STRING_LITERAL
+    ;
+
+// From clause with aliasing and joins
 fromClause
     : FROM tableSource
     ;
@@ -67,13 +95,15 @@ tableSource
     : tableFactor (joinClause)*
     ;
 
+//! Fixed
 tableFactor
-    : qualifiedName (AS? IDENTIFIER)?
-    | LPAREN selectStatement RPAREN AS? IDENTIFIER
+    : qualifiedName (AS? alias)?
+    | LPAREN selectStatement RPAREN AS? alias
     ;
 
 joinClause
-    : joinType? JOIN tableFactor ON expression
+    : joinType? JOIN tableFactor (USING LPAREN columnList RPAREN | ON expression)?
+    | NATURAL joinType? JOIN tableFactor
     ;
 
 joinType
@@ -83,6 +113,8 @@ joinType
     | FULL OUTER?
     | CROSS
     ;
+
+// ________________________ WHERE, GROUP BY, HAVING, ORDER BY, LIMIT
 
 whereClause
     : WHERE expression
@@ -100,38 +132,42 @@ orderByClause
     : ORDER BY orderExpression (COMMA orderExpression)*
     ;
 
-//___________________________________________________________________________________________
+//! Added
+limitClause
+    : LIMIT expression (OFFSET expression)?
+    | OFFSET expression
+    | FETCH NEXT expression ROWS? ONLY
+    ;
 
-//Elias
+// Returning clause for DML
+returningClause
+    : RETURNING expressionList
+    ;
 
-//  INSERT 
+// ________________________ DML Statements
+
 insertStatement
     : INSERT INTO qualifiedName (LPAREN IDENTIFIER (COMMA IDENTIFIER)* RPAREN)?
       (VALUES LPAREN expression (COMMA expression)* RPAREN (COMMA LPAREN expression (COMMA expression)* RPAREN)*
       | selectStatement)
+      returningClause?
     ;
 
-//  UPDATE 
 updateStatement
     : UPDATE qualifiedName
       SET updateAssignment (COMMA updateAssignment)*
       whereClause?
+      returningClause?
     ;
 
-updateAssignment
-    : IDENTIFIER EQ expression
-    | IDENTIFIER (PLUS_EQ | MINUS_EQ | MULT_EQ | DIV_EQ | MOD_EQ) expression
-    ;
-
-//  DELETE 
 deleteStatement
     : DELETE FROM qualifiedName
       whereClause?
+      returningClause?
     ;
 
-//  MERGE 
 mergeStatement
-    : MERGE INTO qualifiedName (AS? IDENTIFIER)?
+    : MERGE INTO qualifiedName (AS? alias)?
       USING tableSource
       ON expression
       whenClauseMerge+
@@ -149,8 +185,24 @@ mergeAction
       VALUES LPAREN expression (COMMA expression)* RPAREN
     ;
 
+// Update assignments
+updateAssignment
+    : IDENTIFIER EQ expression
+    | IDENTIFIER (PLUS_EQ | MINUS_EQ | MULT_EQ | DIV_EQ | MOD_EQ) expression
+    ;
 
-//  Cursor Statements 
+// ________________________ USE and GO Statements 
+//! Fixed
+useStatement
+    : USE IDENTIFIER
+    ;
+
+goStatement
+    : GO
+    ;
+
+// ________________________ Cursor Statements 
+
 cursorStatement
     : DECLARE IDENTIFIER CURSOR FOR selectStatement
     | OPEN IDENTIFIER
@@ -163,7 +215,7 @@ identifierList
     : IDENTIFIER (COMMA IDENTIFIER)*
     ;
 
-//  Control Flow 
+// ________________________ Control Flow 
 
 controlFlowStatement
     : caseExpression
@@ -202,31 +254,30 @@ continueStatement
     : CONTINUE SEMICOLON?
     ;
 
-    
-//________________________________________________________________________________________________________________________________
-
-// Aya 
-
-// Expressions
+// ________________________ Expressions (FIXED to support scalar subqueries)
 
 expression
-    : LPAREN expression RPAREN                                                // ()
+    : LPAREN expression RPAREN                                                //! Parentheses
+    | LPAREN selectStatement RPAREN                                           //! ADDED: Scalar subquery
     | NOT expression                                                          // Not
     | expression (STAR | DIV | MOD) expression                                // / * %
     | expression (PLUS | MINUS_OP) expression                                 // + -
     | expression comparisonOperator expression                                // < > <= >= = !=
     | expression AND expression                                               // AND
     | expression OR expression                                                // OR
-    | expression IS NOT? NULL                                                 // Is Null  - IS NOT NULL
+    | expression IS NOT? NULL                                                 // IS NULL  - IS NOT NULL
     | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN     // NOT IN () - IN ()
     | expression NOT? BETWEEN expression AND expression                       // BETWEEN - NOT BETWEEN
     | expression NOT? LIKE expression (ESCAPE expression)?                    // LIKE - NOT LIKE ESCAPE
     | EXISTS LPAREN selectStatement RPAREN                                    // EXISTS
+    | CASE whenClause+ (ELSE expression)? END                                 // CASE expression
+    | CAST LPAREN expression AS datatype RPAREN                               // CAST
     | functionCall                                                            // SQL function
     | qualifiedName                                                           // column
     | literal                                                                 // static values
     ;
 
+// List of expressions
 expressionList
     : expression (COMMA expression)*
     ;
@@ -240,10 +291,10 @@ comparisonOperator
     ;
 
 orderExpression
-    : expression (ASC | DESC)?
+    : expression (ASC | DESC)? (NULLS (FIRST | LAST))?
     ;
 
-// __________________functions__
+// ________________________ Functions
 
 functionCall
     : systemFunction
@@ -274,13 +325,27 @@ userFunction
     : IDENTIFIER LPAREN (expression (COMMA expression)*)? RPAREN
     ;
 
+//! Fixed
 windowSpec
     : (PARTITION BY expression (COMMA expression)*)? 
     (ORDER BY orderExpression (COMMA orderExpression)*)?
+    (frameClause)?
     ;
 
+frameClause
+    : (ROWS | RANGE | GROUPS) frameBound
+    | (ROWS | RANGE | GROUPS) BETWEEN frameBound AND frameBound
+    ;
 
-// ____________Literals____ 
+frameBound
+    : UNBOUNDED PRECEDING
+    | UNBOUNDED FOLLOWING
+    | CURRENT ROW
+    | expression PRECEDING
+    | expression FOLLOWING
+    ;
+
+// ________________________ Literals
 
 literal
     : STRING_LITERAL
@@ -292,7 +357,7 @@ literal
     | NULL
     ;
 
-// __________________Security Statements_________
+// ________________________ Security Statements
 
 grantStatement
     : GRANT IDENTIFIER ON qualifiedName TO IDENTIFIER
@@ -306,25 +371,23 @@ denyStatement
     : DENY IDENTIFIER ON qualifiedName TO IDENTIFIER
     ;
 
-//  ____________Transaction__________
+// ________________________ Transaction Statements
 
 transactionStatement
     : BEGIN TRANSACTION?
     | COMMIT
-    | ROLLBACK
+    | ROLLBACK (TO SAVEPOINT? IDENTIFIER)?
     | SAVEPOINT IDENTIFIER
     ;
 
-//  ___________Blocks_____ 
+// ________________________ Blocks
 
 block
     : LBRACE statementList RBRACE
     | singleStatement
     ;
 
-
-//___________________________________________________________________________________________
-// Hala DDL Statements 
+// ________________________ DDL Statements
 
 createStatement
     : CREATE createObject
@@ -361,10 +424,17 @@ columnName
     : IDENTIFIER
     ;
 
+//!Fixed
 datatype
     : INT | BIGINT | TINYINT | SMALLINT | DECIMAL | NUMERIC | FLOAT | DOUBLE | REAL
     | BOOLEAN | BOOL | CHAR | VARCHAR | TEXT | ENUM | SET | DATETIME | DATE | TIME
     | TIMESTAMP | YEAR | BINARY | VARBINARY | BLOB | JSON | UUID | BIT
+    | VARCHAR2 | NVARCHAR | NCHAR | CLOB | JSONB | XML | MONEY | VARBIT | IMAGE | ARRAY | STRUCT | MAP
+    | INT LPAREN INT_LITERAL RPAREN
+    | DECIMAL LPAREN INT_LITERAL COMMA INT_LITERAL RPAREN
+    | VARCHAR LPAREN INT_LITERAL RPAREN
+    | CHAR LPAREN INT_LITERAL RPAREN
+    | DOUBLE PRECISION
     ;
 
 columnConstraint
@@ -376,6 +446,11 @@ columnConstraint
     | ON UPDATE expression
     | COLLATE IDENTIFIER
     | BINARY
+    | NOT NULL          //! Added
+    | NULL              //! Added
+    | AUTO_INCREMENT    //! Added
+    | IDENTITY                           //! أضف هذا السطر
+    | IDENTITY LPAREN INT_LITERAL COMMA INT_LITERAL RPAREN  //! أضف هذا السطر أيضاً لدعم IDENTITY(1,1)
     ;
 
 createView

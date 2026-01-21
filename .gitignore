@@ -63,9 +63,19 @@ nbdist/
 .DS_Store
 Thumbs.db
 
-# Other
+# Compiler Project Outputs
 output.txt
 ParserOutput.txt
+ParseTree_Output.txt
+AST_Output.txt
+AST_Output.json
+
+# ANTLR Generated Files
+*.tokens
+.antlr/
+*.interp
+
+# Other
 *.swp
 *.swo
 *~

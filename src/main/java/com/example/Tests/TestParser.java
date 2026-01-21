@@ -1,59 +1,46 @@
-package com.example;
+package com.example.Tests;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
+
+import com.example.SQLLexer;
+import com.example.SQLParser;
+
 import java.nio.file.*;
 
 public class TestParser {
+    private static void printTree(ParseTree tree, SQLParser parser, String prefix, boolean isTail, StringBuilder sb) {
+        if (tree == null)
+            return;
 
-    private static void printTree(
-            ParseTree tree,
-            SQLParser parser,
-            String prefix,
-            boolean isLast,
-            StringBuilder sb
-    ) {
-        if (tree == null) return;
-
-        String nodeLabel;
+        String nodeName;
 
         if (tree instanceof TerminalNode) {
             Token token = ((TerminalNode) tree).getSymbol();
-            String text = token.getText();
             String type = parser.getVocabulary().getSymbolicName(token.getType());
+            String text = token.getText();
 
-            // تجاهل الرموز اللي بتكعجق العرض فقط
-            if (text.matches("[.,();]")) return;
+            if (text.equals(".") || text.equals(",") || text.equals(";") || text.equals("(") || text.equals(")")) {
+                return;
+            }
 
-            nodeLabel = "'" + text + "' <" + type + ">";
+            nodeName = text + " [" + type + "]";
         } else {
             ParserRuleContext ctx = (ParserRuleContext) tree;
-            nodeLabel = ctx.getClass().getSimpleName()
-                    .replace("Context", "");
+            nodeName = parser.getRuleNames()[ctx.getRuleIndex()];
         }
 
-        sb.append(prefix)
-          .append(isLast ? "└── " : "├── ")
-          .append(nodeLabel)
-          .append("\n");
+        sb.append(prefix + (isTail ? "└── " : "├── ") + nodeName + "\n");
 
-        String childPrefix = prefix + (isLast ? "    " : "│   ");
         int childCount = tree.getChildCount();
-
         for (int i = 0; i < childCount; i++) {
-            printTree(
-                    tree.getChild(i),
-                    parser,
-                    childPrefix,
-                    i == childCount - 1,
-                    sb
-            );
+            printTree(tree.getChild(i), parser, prefix + (isTail ? "    " : "│   "), i == childCount - 1, sb);
         }
     }
 
     public static void main(String[] args) throws Exception {
 
-        String sqlInput = Files.readString(Paths.get("testing.sql"));
+        String sqlInput = Files.readString(Paths.get("train.sql"));
 
         CharStream input = CharStreams.fromString(sqlInput);
         SQLLexer lexer = new SQLLexer(input);
@@ -61,6 +48,14 @@ public class TestParser {
         SQLParser parser = new SQLParser(tokens);
 
         ParseTree tree = parser.sqlScript();
+
+        if (parser.getNumberOfSyntaxErrors() > 0) {
+            System.err.println("❌ Parsing failed with " + parser.getNumberOfSyntaxErrors() + " errors!");
+            return;
+        }
+
+        System.out.println("✅ Parsing completed successfully!\n");
+
 
         StringBuilder sb = new StringBuilder();
         printTree(tree, parser, "", true, sb);

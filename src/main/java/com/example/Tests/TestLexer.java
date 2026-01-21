@@ -1,12 +1,15 @@
-package com.example;
+package com.example.Tests;
 
 import org.antlr.v4.runtime.*;
+
+import com.example.SQLLexer;
+
 import java.io.*;
 import java.nio.file.*;
 
 public class TestLexer {
     public static void main(String[] args) throws Exception {
-        String inputFilePath = "testing.sql";
+        String inputFilePath = "train.sql";
         String outputFilePath = "output.txt";
 
         String sqlInput;
