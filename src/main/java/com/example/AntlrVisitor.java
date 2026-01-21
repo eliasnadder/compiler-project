@@ -2,6 +2,11 @@ package com.example;
 
 import com.example.DML.*;
 import com.example.Expressions.*;
+import com.example.DDL.Create.*;
+import com.example.DDL.Alter.*;
+import com.example.DDL.Alter.DropIndexNode;
+import com.example.DDL.Drop.*;
+import com.example.DDL.Truncate.*;
 
 import java.util.*;
 
@@ -41,9 +46,8 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             }
         }
 
-        // FROM clause (only first tableFactor as table source)
+        // FROM clause
         String table = null;
-
         if (ctx.fromClause() != null) {
             SQLParser.TableFactorContext tf = ctx.fromClause().tableSource().tableFactor();
             if (tf != null && tf.qualifiedName() != null) {
@@ -86,14 +90,11 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
     // ----------- INSERT -----------
     @Override
     public ASTNode visitInsertStatement(SQLParser.InsertStatementContext ctx) {
-        // Table name
         String table = ctx.qualifiedName().getText();
 
-        // Columns list
         List<String> columns = null;
         if (ctx.LPAREN() != null && ctx.IDENTIFIER().size() > 0) {
             columns = new ArrayList<>();
-
             int qualifiedNameIndex = -1;
             for (int i = 0; i < ctx.getChildCount(); i++) {
                 if (ctx.getChild(i).equals(ctx.qualifiedName())) {
@@ -102,7 +103,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
                 }
             }
             if (qualifiedNameIndex >= 0 && qualifiedNameIndex + 1 < ctx.getChildCount()) {
-                // The child right after qualifiedName should be '(' for columns list if present
                 if ("(".equals(ctx.getChild(qualifiedNameIndex + 1).getText())) {
                     for (int i = qualifiedNameIndex + 2; i < ctx.getChildCount(); i++) {
                         String txt = ctx.getChild(i).getText();
@@ -115,11 +115,8 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             }
         }
 
-        // Values - multiple rows possible
         List<List<ExpressionNode>> rows = new ArrayList<>();
-
         if (ctx.VALUES() != null) {
-            // Parse multiple rows of values: VALUES (expr, expr, ...), (expr, expr, ...)
             for (int i = 0; i < ctx.getChildCount(); i++) {
                 if ("(".equals(ctx.getChild(i).getText())) {
                     List<ExpressionNode> row = new ArrayList<>();
@@ -135,7 +132,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
                 }
             }
         } else if (ctx.selectStatement() != null) {
-            // Insert from subquery
             List<ExpressionNode> subquery = new ArrayList<>();
             subquery.add((ExpressionNode) visit(ctx.selectStatement()));
             rows.add(subquery);
@@ -149,7 +145,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
     public ASTNode visitUpdateStatement(SQLParser.UpdateStatementContext ctx) {
         String table = ctx.qualifiedName().getText();
 
-        // Map<String, ExpressionNode> assignments
         Map<String, ExpressionNode> assignments = new LinkedHashMap<>();
         for (SQLParser.UpdateAssignmentContext ua : ctx.updateAssignment()) {
             UpdateAssignmentNode assignNode = (UpdateAssignmentNode) visit(ua);
@@ -177,13 +172,11 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         return new DeleteNode(table, where);
     }
 
-    // ----------- MERGE (simplified) -----------
+    // ----------- MERGE -----------
     @Override
     public ASTNode visitMergeStatement(SQLParser.MergeStatementContext ctx) {
         String table = ctx.qualifiedName().getText();
-
         DMLStatementsNode usingSource = (DMLStatementsNode) visit(ctx.tableSource());
-
         ExpressionNode onCond = (ExpressionNode) visit(ctx.expression());
 
         List<DMLStatementsNode> whenMatchedActions = new ArrayList<>();
@@ -192,7 +185,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         for (SQLParser.WhenClauseMergeContext wcm : ctx.whenClauseMerge()) {
             if (wcm.WHEN().getText().equalsIgnoreCase("WHEN")) {
                 boolean matched = wcm.MATCHED() != null;
-                // Visit mergeAction
                 DMLStatementsNode action = (DMLStatementsNode) visit(wcm.mergeAction());
 
                 if (matched) {
@@ -215,28 +207,362 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         return new UpdateAssignmentNode(column, operator, value);
     }
 
-    /// ================ EXPRESSIONS ================
+    // ================ DDL STATEMENTS ================
+
+    // ----------- CREATE -----------
+    @Override
+    public ASTNode visitCreateStatement(SQLParser.CreateStatementContext ctx) {
+        return visit(ctx.createObject());
+    }
+
+    @Override
+    public ASTNode visitCreateDatabase(SQLParser.CreateDatabaseContext ctx) {
+        String dbName = ctx.databaseName().getText();
+        boolean ifNotExists = ctx.IF_NOT_EXISTS() != null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new CreateDatabaseNode(dbName, line, col, ifNotExists);
+    }
+
+    @Override
+    public ASTNode visitCreateTable(SQLParser.CreateTableContext ctx) {
+        String tableName = ctx.tableName().getText();
+        boolean ifNotExists = ctx.IF_NOT_EXISTS() != null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        CreateTableNode tableNode = new CreateTableNode(tableName, line, col, ifNotExists);
+
+        for (SQLParser.ColumnDefinitionContext colDef : ctx.columnDefinition()) {
+            ColumnDefinitionNode colNode = (ColumnDefinitionNode) visit(colDef);
+            tableNode.addColumn(colNode);
+        }
+
+        return tableNode;
+    }
+
+    @Override
+    public ASTNode visitColumnDefinition(SQLParser.ColumnDefinitionContext ctx) {
+        String colName = ctx.columnName().getText();
+        String dataType = ctx.datatype().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        ColumnDefinitionNode colNode = new ColumnDefinitionNode(colName, dataType, line, col);
+
+        for (SQLParser.ColumnConstraintContext constraint : ctx.columnConstraint()) {
+            ColumnConstraintNode constraintNode = (ColumnConstraintNode) visit(constraint);
+            colNode.addConstraint(constraintNode);
+        }
+
+        return colNode;
+    }
+
+    @Override
+    public ASTNode visitColumnConstraint(SQLParser.ColumnConstraintContext ctx) {
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        if (ctx.PRIMARY() != null && ctx.KEY() != null) {
+            return new PrimaryKeyConstraintNode(line, col);
+        }
+        if (ctx.UNIQUE() != null) {
+            return new UniqueConstraintNode(line, col);
+        }
+        if (ctx.NOT() != null && ctx.NULL() != null) {
+            return new CheckConstraintNode(null, line, col);
+        }
+        if (ctx.CHECK() != null) {
+            ExpressionNode expr = (ExpressionNode) visit(ctx.expression());
+            return new CheckConstraintNode(expr, line, col);
+        }
+        if (ctx.DEFAULT() != null) {
+            ExpressionNode defaultValue = ctx.literal() != null ? (ExpressionNode) visit(ctx.literal()) : null;
+            return new DefaultConstraintNode(defaultValue, line, col);
+        }
+        if (ctx.BINARY() != null) {
+            return new BinaryConstraintNode(line, col);
+        }
+        if (ctx.COLLATE() != null) {
+            String collation = ctx.IDENTIFIER().getText();
+            return new CollateConstraintNode(collation, line, col);
+        }
+
+        return null;
+    }
+
+    @Override
+    public ASTNode visitCreateView(SQLParser.CreateViewContext ctx) {
+        String viewName = ctx.viewName().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new CreateViewNode(viewName, line, col);
+    }
+
+    @Override
+    public ASTNode visitCreateIndex(SQLParser.CreateIndexContext ctx) {
+        String indexName = ctx.indexName().getText();
+        String tableName = ctx.tableName().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        CreateIndexNode indexNode = new CreateIndexNode(indexName, tableName, line, col);
+
+        for (SQLParser.ColumnNameContext colName : ctx.columnName()) {
+            indexNode.addColumnName(colName.getText());
+        }
+
+        return indexNode;
+    }
+
+    // ----------- ALTER -----------
+    @Override
+    public ASTNode visitAlterStatement(SQLParser.AlterStatementContext ctx) {
+        return visit(ctx.alterObject());
+    }
+
+    @Override
+    public ASTNode visitAlterTable(SQLParser.AlterTableContext ctx) {
+        String tableName = ctx.tableName().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        AlterTableNode alterNode = new AlterTableNode(tableName, line, col);
+
+        for (SQLParser.AlterTableActionContext action : ctx.alterTableAction()) {
+            AlterTableActionNode actionNode = (AlterTableActionNode) visit(action);
+            alterNode.addAction(actionNode);
+        }
+
+        return alterNode;
+    }
+
+    @Override
+    public ASTNode visitAddColumn(SQLParser.AddColumnContext ctx) {
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        ColumnDefinitionNode colDef = (ColumnDefinitionNode) visit(ctx.columnDefinition());
+        return new AddColumnNode(colDef, line, col);
+    }
+
+    @Override
+    public ASTNode visitDropColumn(SQLParser.DropColumnContext ctx) {
+        String colName = ctx.columnName().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new DropColumnNode(colName, line, col);
+    }
+
+    @Override
+    public ASTNode visitModifyColumn(SQLParser.ModifyColumnContext ctx) {
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        ColumnDefinitionNode colDef = (ColumnDefinitionNode) visit(ctx.columnDefinition());
+        return new ModifyColumnNode(colDef, line, col);
+    }
+
+    @Override
+    public ASTNode visitChangeColumn(SQLParser.ChangeColumnContext ctx) {
+        String oldName = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        ColumnDefinitionNode newCol = (ColumnDefinitionNode) visit(ctx.columnDefinition());
+        return new ChangeColumnNode(oldName, newCol, line, col);
+    }
+
+    @Override
+    public ASTNode visitRenameColumn(SQLParser.RenameColumnContext ctx) {
+        String oldName = ctx.IDENTIFIER(0).getText();
+        String newName = ctx.IDENTIFIER(1).getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new RenameColumnNode(oldName, newName, line, col);
+    }
+
+    @Override
+    public ASTNode visitRenameTable(SQLParser.RenameTableContext ctx) {
+        String newName = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new RenameTableNode(newName, line, col);
+    }
+
+    @Override
+    public ASTNode visitAddConstraint(SQLParser.AddConstraintContext ctx) {
+        String constraintName = ctx.IDENTIFIER() != null ? ctx.IDENTIFIER().getText() : null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        TableConstraintNode constraint = (TableConstraintNode) visit(ctx.tableConstraint());
+        return new AddConstraintNode(constraintName, constraint, line, col);
+    }
+
+    @Override
+    public ASTNode visitDropConstraint(SQLParser.DropConstraintContext ctx) {
+        String constraintName = ctx.IDENTIFIER() != null ? ctx.IDENTIFIER().getText() : "PRIMARY_KEY";
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new DropConstraintNode(constraintName, line, col);
+    }
+
+    @Override
+    public ASTNode visitAddIndex(SQLParser.AddIndexContext ctx) {
+        String indexName = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new AddIndexNode(indexName, line, col);
+    }
+
+    @Override
+    public ASTNode visitDropColumnIndex(SQLParser.DropColumnIndexContext ctx) {
+        String indexName = ctx.IDENTIFIER().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new DropIndexNode(indexName, line, col);
+    }
+
+    @Override
+    public ASTNode visitAlterColumnDefault(SQLParser.AlterColumnDefaultContext ctx) {
+        String colName = ctx.columnName().getText();
+        String defaultValue = ctx.defaultValue() != null ? ctx.defaultValue().getText() : null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new AlterColumnDefaultNode(line, col, colName, defaultValue);
+    }
+
+    @Override
+    public ASTNode visitTableConstraint(SQLParser.TableConstraintContext ctx) {
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        if (ctx.PRIMARY() != null) {
+            PrimarykeyTableConstraintNode pkNode = new PrimarykeyTableConstraintNode(line, col);
+            for (SQLParser.ColumnNameContext colName : ctx.columnList().columnName()) {
+                pkNode.addColumn(colName.getText());
+            }
+            return pkNode;
+        }
+
+        if (ctx.FOREIGN() != null) {
+            String refTable = ctx.tableName().getText();
+            ForeignKeyTableConstraintNode fkNode = new ForeignKeyTableConstraintNode(refTable, line, col);
+
+            for (SQLParser.ColumnNameContext colName : ctx.columnList(0).columnName()) {
+                fkNode.addLocalColumn(colName.getText());
+            }
+            for (SQLParser.ColumnNameContext colName : ctx.columnList(1).columnName()) {
+                fkNode.addReferencedColumn(colName.getText());
+            }
+            return fkNode;
+        }
+
+        return null;
+    }
+
+    // ----------- DROP -----------
+    @Override
+    public ASTNode visitDropStatement(SQLParser.DropStatementContext ctx) {
+        return visit(ctx.dropObject());
+    }
+
+    @Override
+    public ASTNode visitDropDatabase(SQLParser.DropDatabaseContext ctx) {
+        String dbName = ctx.databaseName().getText();
+        boolean ifExists = ctx.IF_EXISTS() != null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new DropDatabaseNode(dbName, line, col, ifExists);
+    }
+
+    @Override
+    public ASTNode visitDropTable(SQLParser.DropTableContext ctx) {
+        boolean ifExists = ctx.IF_EXISTS() != null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        DropTableNode dropNode = new DropTableNode(line, col, ifExists);
+        for (SQLParser.TableNameContext tableName : ctx.tableName()) {
+            dropNode.addTableName(tableName.getText());
+        }
+
+        return dropNode;
+    }
+
+    @Override
+    public ASTNode visitDropView(SQLParser.DropViewContext ctx) {
+        boolean ifExists = ctx.IF_EXISTS() != null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        String firstView = ctx.viewName(0).getText();
+        DropViewNode dropNode = new DropViewNode(firstView, line, col, ifExists);
+
+        for (SQLParser.ViewNameContext viewName : ctx.viewName()) {
+            dropNode.addViewName(viewName.getText());
+        }
+
+        return dropNode;
+    }
+
+    @Override
+    public ASTNode visitDropIndex(SQLParser.DropIndexContext ctx) {
+        String indexName = ctx.indexName().getText();
+        String tableName = ctx.tableName().getText();
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+        return new DropIndexNode(indexName, line, col);
+    }
+
+    // ----------- TRUNCATE -----------
+    @Override
+    public ASTNode visitTruncateStatement(SQLParser.TruncateStatementContext ctx) {
+        return visit(ctx.truncateObject());
+    }
+
+    @Override
+    public ASTNode visitTruncateTable(SQLParser.TruncateTableContext ctx) {
+        boolean ifExists = ctx.IF_EXISTS() != null;
+        int line = ctx.getStart().getLine();
+        int col = ctx.getStart().getCharPositionInLine();
+
+        TruncateTableNode truncateNode = new TruncateTableNode(ifExists, line, col);
+
+        for (SQLParser.TableNameContext tableName : ctx.tableName()) {
+            truncateNode.addTableName(tableName.getText());
+        }
+
+        for (SQLParser.TruncateOptionContext option : ctx.truncateOption()) {
+            if (option.CASCADE() != null) {
+                truncateNode.addOption(TruncateTableNode.TruncateOption.CASCADE);
+            } else if (option.RESTRICT() != null) {
+                truncateNode.addOption(TruncateTableNode.TruncateOption.RESTRICT);
+            } else if (option.RESTART() != null && option.IDENTITY() != null) {
+                truncateNode.addOption(TruncateTableNode.TruncateOption.RESTART_IDENTITY);
+            } else if (option.CONTINUE() != null && option.IDENTITY() != null) {
+                truncateNode.addOption(TruncateTableNode.TruncateOption.CONTINUE_IDENTITY);
+            }
+        }
+
+        return truncateNode;
+    }
 
     // ================ EXPRESSIONS ================
 
     @Override
     public ASTNode visitExpression(SQLParser.ExpressionContext ctx) {
-        // -- CAST --
+        // CAST
         if (ctx.CAST() != null) {
-            // CAST LPAREN expression AS datatype RPAREN
             ExpressionNode expr = (ExpressionNode) visit(ctx.expression(0));
             String datatype = ctx.datatype().getText();
             return new CastExpressionNode(expr, datatype);
         }
 
-        // -- CASE --
+        // CASE
         if (ctx.CASE() != null) {
             List<CaseExpressionNode.WhenClause> whenClauses = new ArrayList<>();
 
             for (SQLParser.WhenClauseContext wctx : ctx.whenClause()) {
                 ExpressionNode cond = (ExpressionNode) visit(wctx.expression(0));
                 ExpressionNode res = (ExpressionNode) visit(wctx.expression(1));
-
                 whenClauses.add(new CaseExpressionNode.WhenClause(cond, res));
             }
 
@@ -248,19 +574,19 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return new CaseExpressionNode(whenClauses, elseExpr);
         }
 
-        // -- NOT expr --
+        // NOT expr
         if (ctx.NOT() != null && ctx.expression().size() == 1) {
             return new UnaryExpressionNode("NOT", (ExpressionNode) visit(ctx.expression(0)));
         }
 
-        // -- IS NULL / IS NOT NULL --
+        // IS NULL / IS NOT NULL
         if (ctx.IS() != null && ctx.NULL() != null) {
             boolean not = ctx.NOT() != null;
             return new UnaryExpressionNode(not ? "IS NOT NULL" : "IS NULL",
                     (ExpressionNode) visit(ctx.expression(0)));
         }
 
-        // -- BETWEEN / NOT BETWEEN --
+        // BETWEEN / NOT BETWEEN
         if (ctx.BETWEEN() != null) {
             boolean not = ctx.NOT() != null;
             ExpressionNode expr = (ExpressionNode) visit(ctx.expression(0));
@@ -269,14 +595,13 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return new BetweenExpressionNode(expr, start, end, not);
         }
 
-        // -- IN / NOT IN --
+        // IN / NOT IN
         if (ctx.IN() != null) {
             boolean not = ctx.NOT() != null;
             ExpressionNode expr = (ExpressionNode) visit(ctx.expression(0));
             List<ExpressionNode> list;
 
             if (ctx.selectStatement() != null) {
-                // Subquery in IN
                 list = new ArrayList<>();
                 list.add((ExpressionNode) visit(ctx.selectStatement()));
             } else if (ctx.expressionList() != null) {
@@ -290,7 +615,7 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return new InExpressionNode(expr, list, not);
         }
 
-        // -- LIKE / NOT LIKE --
+        // LIKE / NOT LIKE
         if (ctx.LIKE() != null) {
             boolean not = ctx.NOT() != null;
             ExpressionNode expr = (ExpressionNode) visit(ctx.expression(0));
@@ -302,36 +627,36 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return new LikeExpressionNode(expr, pattern, escape, not);
         }
 
-        // -- EXISTS / NOT EXISTS --
+        // EXISTS / NOT EXISTS
         if (ctx.EXISTS() != null) {
             boolean not = ctx.NOT() != null;
             ASTNode subquery = visit(ctx.selectStatement());
             return new ExistsExpressionNode(subquery, not);
         }
 
-        // -- Function Calls --
+        // Function Calls
         if (ctx.functionCall() != null) {
             return visit(ctx.functionCall());
         }
 
-        // -- Parentheses (expr) --
+        // Parentheses (expr)
         if (ctx.LPAREN() != null && ctx.RPAREN() != null && ctx.expression().size() == 1) {
             return visit(ctx.expression(0));
         }
 
-        // -- Literal --
+        // Literal
         if (ctx.literal() != null) {
             return visit(ctx.literal());
         }
 
-        // -- QualifiedName (columns) --
+        // QualifiedName (columns)
         if (ctx.qualifiedName() != null) {
             return new ColumnNode(ctx.qualifiedName().getText());
         }
 
         int count = ctx.getChildCount();
 
-        // -- Binary comparison operators: expr op expr --
+        // Binary comparison operators: expr op expr
         if (count == 3 && ctx.comparisonOperator() != null) {
             return new BinaryExpressionNode(
                     (ExpressionNode) visit(ctx.expression(0)),
@@ -339,7 +664,7 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
                     (ExpressionNode) visit(ctx.expression(1)));
         }
 
-        // -- Arithmetic operators +, -, *, /, % --
+        // Arithmetic operators +, -, *, /, %
         if (count == 3 && (ctx.PLUS() != null || ctx.MINUS_OP() != null ||
                 ctx.STAR() != null || ctx.DIV() != null || ctx.MOD() != null)) {
             return new BinaryExpressionNode(
@@ -348,7 +673,7 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
                     (ExpressionNode) visit(ctx.expression(1)));
         }
 
-        // -- AND / OR logical ops --
+        // AND / OR logical ops
         if (count == 3 && (ctx.AND() != null || ctx.OR() != null)) {
             return new BinaryExpressionNode(
                     (ExpressionNode) visit(ctx.expression(0)),
@@ -356,7 +681,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
                     (ExpressionNode) visit(ctx.expression(1)));
         }
 
-        // -- Fallback to children --
         return visitChildren(ctx);
     }
 
@@ -366,7 +690,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
     public ASTNode visitLiteral(SQLParser.LiteralContext ctx) {
         String text = ctx.getText();
 
-        // Try to parse to corresponding Java types if needed
         if (ctx.INT_LITERAL() != null) {
             return new LiteralNode(Integer.parseInt(text));
         }
@@ -374,7 +697,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return new LiteralNode(Double.parseDouble(text));
         }
         if (ctx.STRING_LITERAL() != null) {
-            // Remove quotes if needed
             String val = text.substring(1, text.length() - 1);
             return new LiteralNode(val);
         }
@@ -388,7 +710,6 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
             return new NullNode();
         }
 
-        // Default fallback
         return new LiteralNode(text);
     }
 
@@ -402,7 +723,7 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
         if (ctx.systemFunction() != null) {
             functionName = ctx.systemFunction().getText();
         } else if (ctx.aggregateFunction() != null) {
-            functionName = ctx.aggregateFunction().getChild(0).getText(); // COUNT, SUM, etc.
+            functionName = ctx.aggregateFunction().getChild(0).getText();
 
             if (ctx.aggregateFunction().STAR() != null) {
                 args.add(new ColumnNode("*"));
@@ -429,5 +750,4 @@ public class AntlrVisitor extends SQLParserBaseVisitor<ASTNode> {
     protected ASTNode defaultResult() {
         return null;
     }
-
 }
