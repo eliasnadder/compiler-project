@@ -3,12 +3,10 @@ package com.example.CONTROL;
 import com.example.ASTNode;
 
 public class ReturnStatementNode extends ControlFlowStatementNode {
-    
+
     private final ASTNode expression;
 
-    public ReturnStatementNode(ASTNode expression,
-                               int line,
-                               int col) {
+    public ReturnStatementNode(ASTNode expression, int line, int col) {
         super(line, col);
         this.expression = expression;
 
@@ -16,6 +14,7 @@ public class ReturnStatementNode extends ControlFlowStatementNode {
             addChild(expression);
         }
     }
+
     public ASTNode getExpression() {
         return expression;
     }

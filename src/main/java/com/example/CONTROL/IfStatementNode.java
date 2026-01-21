@@ -1,11 +1,14 @@
 package com.example.CONTROL;
+
 import com.example.Expressions.ExpressionNode;
+
 public class IfStatementNode extends ControlFlowStatementNode {
     private final ExpressionNode condition;
     private final BlockNode thenBlock;
     private final BlockNode elseBlock;
 
-    public IfStatementNode(ExpressionNode condition, BlockNode thenBlock, BlockNode elseBlock, int lineNumber, int columnNumber) {
+    public IfStatementNode(ExpressionNode condition, BlockNode thenBlock, BlockNode elseBlock, int lineNumber,
+            int columnNumber) {
         super(lineNumber, columnNumber);
         this.condition = condition;
         this.thenBlock = thenBlock;
@@ -16,7 +19,6 @@ public class IfStatementNode extends ControlFlowStatementNode {
             addChild(elseBlock);
         }
     }
-    
 
     public ExpressionNode getCondition() {
         return condition;

@@ -14,7 +14,7 @@ public class SavepointNode extends TransactionStatementNode {
 
     @Override
     public String getNodeType() {
-        return "SAVEPOINT ( " + savepointName+" )";
+        return "SAVEPOINT ( " + savepointName + " )";
     }
 
 }

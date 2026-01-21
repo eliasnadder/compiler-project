@@ -7,12 +7,13 @@ public class BiginTransactionNode extends TransactionStatementNode {
         super(lineNumber, columnNumber);
         this.explicitTransaction = explicitTransaction;
     }
+
     public boolean isExplicitTransaction() {
         return explicitTransaction;
     }
+
     @Override
     public String getNodeType() {
-        return explicitTransaction
-                        ? "BEGIN TRANSACTION"
-                        : "BEGIN";    }
+        return explicitTransaction ? "BEGIN TRANSACTION" : "BEGIN";
+    }
 }

@@ -1,5 +1,7 @@
 package com.example.CONTROL;
+
 import com.example.Expressions.ExpressionNode;
+
 public class WhenClauseNode extends ControlFlowStatementNode {
     private final ExpressionNode condition;
     private final ExpressionNode result;
